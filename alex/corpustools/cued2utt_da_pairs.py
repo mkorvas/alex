@@ -16,7 +16,8 @@ if __name__ == "__main__":
     import autopath
 
 from alex.corpustools.cued import find_logs
-from alex.corpustools.text_norm_en import exclude, exclude_by_dict, normalise_text
+from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,
+                                               normalise_text)
 from alex.utils.various import get_text_from_xml_node
 
 """

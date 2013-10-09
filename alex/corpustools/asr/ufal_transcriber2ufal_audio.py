@@ -10,10 +10,11 @@ import re
 import subprocess
 import xml.dom.minidom
 
-from alex.corpustools.text_norm_en import exclude, exclude_by_dict, normalise_text
+from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,
+                                               normalise_text)
 
 """
-This program process transcribed audio in Transcriber files and copies all
+This program processes transcribed audio in Transcriber files and copies all
 relevant speech segments into a destination directory.
 It also extracts transcriptions and saves them alongside the copied wavs.
 
@@ -208,8 +209,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
-        This program process transcribed audio in Transcriber (*.trs) files and
-        copies all relevant speech segments into a destination directory.
+        This program processes transcribed audio in Transcriber (*.trs) files
+        and copies all relevant speech segments into a destination directory.
         It also extracts transcriptions and saves them alongside the copied
         wavs.
 

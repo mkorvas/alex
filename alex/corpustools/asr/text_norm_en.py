@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # vim: set fileencoding=utf-8 fdm=marker :
 """
-This module provides tools for **ENGLISH** normalisation of transcriptions, mainly for
-those obtained from human transcribers.
+This module provides tools for normalisation of English transcriptions, mainly
+for those obtained from human transcribers.
 """
 
 from __future__ import unicode_literals

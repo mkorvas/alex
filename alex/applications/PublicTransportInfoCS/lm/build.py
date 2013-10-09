@@ -25,7 +25,7 @@ import autopath
 import alex.corpustools.lm as lm
 import alex.utils.various as various
 
-from alex.corpustools.text_norm_cs import normalise_text
+from alex.corpustools.asr.text_norm_cs import normalise_text
 
 
 bootstrap_text                  = "bootstrap.txt"

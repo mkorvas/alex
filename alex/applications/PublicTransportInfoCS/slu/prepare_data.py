@@ -11,7 +11,7 @@ import autopath
 
 import alex.utils.various as various
 
-from alex.corpustools.text_norm_cs import normalise_text
+from alex.corpustools.asr.text_norm_cs import normalise_text
 from alex.corpustools.wavaskey import save_wavaskey
 from alex.components.asr.utterance import Utterance, UtteranceNBList
 from alex.components.slu.base import CategoryLabelDatabase
