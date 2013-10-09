@@ -1,22 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-import argparse
-import codecs
-import collections
-import os.path
-import random
-import re
-import subprocess
-import xml.dom.minidom
-
-# Make sure the alex package is visible.
-if __name__ == '__main__':
-    import autopath
-
-from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,
-                                               normalise_text)
-
 """
 This program processes transcribed audio in Transcriber files and copies all
 relevant speech segments into a destination directory.
@@ -41,6 +24,30 @@ The last one is an example of a more advanced glob. It says basically that
 all odd dialogue turns should be ignored.
 
 """
+
+import argparse
+import codecs
+import collections
+import os.path
+import random
+import re
+import subprocess
+import xml.dom.minidom
+
+# Make sure the alex package is visible.
+if __name__ == '__main__':
+    import autopath
+
+from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,
+                                               normalise_text)
+
+
+from alex.utils.ui import getTerminalSize
+try:
+    _term_width = getTerminalSize()[1]
+except:
+    _term_width = 80
+
 
 def unique_str():
     """Generates a fairly unique string."""
@@ -88,7 +95,7 @@ def extract_wavs_trns(_file, outdir, trs_only=False, verbose=False):
     n_missing_trs = 0
     for uturn in uturns:
         if verbose:
-            print '-' * (getTerminalSize()[1] or 120)
+            print '-' * _term_width
 
         # Retrieve the user turn's data.
         starttime = float(uturn.getAttribute('time').strip())
@@ -205,7 +212,6 @@ def convert(args):
 if __name__ == '__main__':
     wc = collections.Counter()  # word counter
     from alex.utils.fs import find
-    from alex.utils.ui import getTerminalSize
 
     random.seed(1)
 
