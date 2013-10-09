@@ -45,6 +45,13 @@ from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,
                                                normalise_trs)
 
 
+from alex.utils.ui import getTerminalSize
+try:
+    _term_width = getTerminalSize()[1]
+except:
+    _term_width = 80
+
+
 def save_transcription(trs_fname, trs):
     """
     Echoes `trs' into `trs_fname'. Returns True iff the
@@ -115,8 +122,7 @@ def extract_wavs_trns(dirname, sess_fname, outdir, wav_mapping,
 
         if not missing_wav:
             if verbose:
-                term_width = getTerminalSize()[1] or 80
-                print '-' * term_width
+                print '-' * _term_width
                 print " # f:", wav_basename, "t:", trs
 
             trs = normalise_trs(trs)
@@ -152,14 +158,12 @@ def extract_wavs_trns(dirname, sess_fname, outdir, wav_mapping,
         else:
             n_missing_wav += 1
             if args.verbose:
-                term_width = getTerminalSize()[1] or 80
-                print '-' * term_width
+                print '-' * _term_width
                 print "(WW) Ignoring or missing_wav the file '{0}'."\
                     .format(wav_basename)
 
     if verbose:
-        term_width = getTerminalSize()[1] or 80
-        print '-' * term_width
+        print '-' * _term_width
         print
     return size, n_overwrites, n_missing_wav, n_missing_trs
 
@@ -286,7 +290,6 @@ def convert(args):
 
 if __name__ == '__main__':
     wc = collections.Counter()  # word counter
-    from alex.utils.ui import getTerminalSize
 
     # Parse arguments.
     arger = argparse.ArgumentParser(
