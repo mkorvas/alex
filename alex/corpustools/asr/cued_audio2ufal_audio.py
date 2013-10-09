@@ -35,8 +35,10 @@ import shutil
 import sys
 from xml.etree import ElementTree
 
-if __name__ == "__main__":
+# Make sure the alex package is visible.
+if __name__ == '__main__':
     import autopath
+
 
 from alex.corpustools.cued import find_wavs
 from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,

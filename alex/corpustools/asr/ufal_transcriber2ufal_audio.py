@@ -10,6 +10,10 @@ import re
 import subprocess
 import xml.dom.minidom
 
+# Make sure the alex package is visible.
+if __name__ == '__main__':
+    import autopath
+
 from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,
                                                normalise_text)
 
@@ -200,7 +204,6 @@ def convert(args):
 
 if __name__ == '__main__':
     wc = collections.Counter()  # word counter
-    import autopath
     from alex.utils.fs import find
     from alex.utils.ui import getTerminalSize
 
