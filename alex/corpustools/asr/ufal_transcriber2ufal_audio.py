@@ -30,7 +30,6 @@ import codecs
 import collections
 import os.path
 import random
-import re
 import subprocess
 import xml.dom.minidom
 
@@ -38,8 +37,7 @@ import xml.dom.minidom
 if __name__ == '__main__':
     import autopath
 
-from alex.corpustools.asr.text_norm_en import (exclude, exclude_by_dict,
-                                               normalise_text)
+from alex.corpustools.asr.text_norm_en import exclude, normalise_text
 
 
 from alex.utils.ui import getTerminalSize
@@ -59,7 +57,7 @@ def cut_wavs(src, tgt, start, end):
     it to `tgt'.
 
     """
-    existed = os.path.exists(trs_fname)
+    existed = os.path.exists(tgt)
     cmd = ("sox", "--ignore-length", src, tgt,
            "trim", str(start), str(end - start))
     print " ".join(cmd)
@@ -74,6 +72,8 @@ def save_transcription(trs_fname, trs):
 
     """
     existed = os.path.exists(trs_fname)
+    if not trs.endswith('\n'):
+        trs += '\n'
     with codecs.open(trs_fname, 'w+', encoding='UTF-8') as trs_file:
         trs_file.write(trs.encode('ascii', 'ignore'))
     return existed
