@@ -25,26 +25,25 @@ _nonspeech_map = {
         '(LAUGH)',
         '(LAUGHING)'),
     '_EHM_HMM_': (
-        '(HESITATION)',
-        '(HESITATION)'),
+        '(HESITATION)', ),
     '_NOISE_': (
+        '(BABY)',
+        '(BACKGROUNDNOISE)',
+        '(BANG)',
+        '(BANGING)',
+        '(BARK)',
+        '(BARKING)',
         '(COUCHING)',
         '(COUGH)',
         '(COUGHING)',
+        '(INTERFERENCE)',
+        '(KNOCKING)',
         '(LIPSMACK)',
+        '(NOISE)',
+        '(NOISES)',
         '(POUNDING)',
         '(RING)',
         '(RINGING)',
-        '(INTERFERENCE)',
-        '(KNOCKING)',
-        '(BANG)',
-        '(BANGING)',
-        '(BACKGROUNDNOISE)',
-        '(BABY)',
-        '(BARK)',
-        '(BARKING)',
-        '(NOISE)',
-        '(NOISES)',
         '(SCRAPE)',
         '(SQUEAK)',
         '(TVNOISE)')
@@ -328,6 +327,9 @@ _subst = [('GOOD-BYE', 'GOODBYE'),
 for idx, tup in enumerate(_subst):
     pat, sub = tup
     _subst[idx] = (re.compile(ur'\b{pat}\b'.format(pat=pat)), sub)
+# This was present in an alternative development branch. Not sure whether it is
+# any use.
+# _subst.append((re.compile('\\^'), ''))
 
 # hesitation expressions {{{
 _hesitation = ['AAAA', 'AAA', 'AA', 'AAH', 'A-', "-AH-", "AH-", "AH.", "AH",

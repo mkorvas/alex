@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
-
 import argparse
 import codecs
 import collections
@@ -12,6 +10,7 @@ import re
 import subprocess
 import xml.dom.minidom
 
+from alex.corpustools.text_norm_en import exclude, exclude_by_dict, normalise_text
 
 """
 This program process transcribed audio in Transcriber files and copies all
@@ -38,68 +37,6 @@ all odd dialogue turns should be ignored.
 
 """
 
-_subst = [('<SILENCE>', '_SIL_'),
-          ('<INHALE>', '_INHALE_'),
-          ('<NOISE>', '_NOISE_'),
-          ('<COUGH>', '_EHM_HMM_'),
-          ('<MOUTH>', '_EHM_HMM_'),
-          ('<LAUGH>', '_LAUGH_'),
-          ('<EHM A>', '_EHM_HMM_'),
-          ('<EHM N>', '_EHM_HMM_'),
-          ('<EHM *>', '_EHM_HMM_'),
-          (ur'\([^(]*\(([^)]*)\)\)', '\\2'),  # (written form (pronounced))
-            # NOTE '\\2' is used instead of '\\1' since '\\1' will refer to the
-            # preceding 0 or 1 characters when `_subst' is used next
-          ('JESLTI', 'JESTLI'),
-          (u'NMŮŽU', u'NEMŮŽU'),
-          ('6E', ' '),   # XXX What is this??
-          ]
-for idx, tup in enumerate(_subst):
-    pat, sub = tup
-    _subst[idx] = (re.compile(ur'(\W|^){pat}(?=$|\W)'.format(pat=pat)),
-                   r'\1' + sub)
-_subst.append((re.compile('\\^'), ''))
-
-_hesitation = [re.compile(r"\bUMMM\b")]
-
-_excluded_characters = ['|', '-', '=', '(', ')', '[', ']', '{', '}', '<', '>',
-                       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-_more_spaces = re.compile(r'\s{2,}')
-_sure_punct_rx = re.compile(r'[.?!",_]')
-
-
-def normalise_trs(text):
-    text = _sure_punct_rx.sub(' ', text)
-    text = text.strip().upper()
-    # Do dictionary substitutions.
-    for pat, sub in _subst:
-        text = pat.sub(sub, text)
-    text = _more_spaces.sub(' ', text).strip()
-    for word in _hesitation:
-        text = word.sub('(HESITATION)', text)
-    # remove signs of (1) incorrect pronunciation, (2) stuttering, (3) bargein
-    for char in '*+~':
-        text = text.replace(char, '')
-    return text
-
-
-def exclude(text):
-    """
-    Determines whether `text' is not good enough and should be excluded. "Good
-    enough" is defined as containing none of `_excluded_characters' and being
-    longer than one word.
-
-    """
-    for char in _excluded_characters:
-        if char in text:
-            return True
-
-    if len(text) < 2:
-        return True
-
-    return False
-
-
 def unique_str():
     """Generates a fairly unique string."""
     return hex(random.randint(0, 256 * 256 * 256 * 256 - 1))[2:]
@@ -110,7 +47,7 @@ def cut_wavs(src, tgt, start, end):
     it to `tgt'.
 
     """
-    existed = os.path.exists(tgt)
+    existed = os.path.exists(trs_fname)
     cmd = ("sox", "--ignore-length", src, tgt,
            "trim", str(start), str(end - start))
     print " ".join(cmd)
@@ -125,11 +62,8 @@ def save_transcription(trs_fname, trs):
 
     """
     existed = os.path.exists(trs_fname)
-    if not trs.endswith('\n'):
-        trs += '\n'
     with codecs.open(trs_fname, 'w+', encoding='UTF-8') as trs_file:
-        trs_file.write(trs)
-        # trs_file.write(trs.encode('ascii', 'ignore'))
+        trs_file.write(trs.encode('ascii', 'ignore'))
     return existed
 
 
@@ -175,12 +109,12 @@ def extract_wavs_trns(_file, outdir, trs_only=False, verbose=False):
         if verbose:
             print " #f: {tgt}; # s: {start}; # e: {end}; t: {trs}".format(
                 tgt=os.path.basename(tgt_wav_fname), start=starttime,
-                end=endtime, trs=transcription)
+                end=endtime, trs=transcription.encode('UTF-8'))
 
         # Normalise
-        transcription = normalise_trs(transcription)
+        transcription = normalise_text(transcription)
         if verbose:
-            print "  after normalisation:", transcription
+            print "  after normalisation:", transcription.encode('UTF-8')
         if exclude(transcription):
             if verbose:
                 print "  ...excluded"
@@ -265,9 +199,6 @@ def convert(args):
 
 if __name__ == '__main__':
     wc = collections.Counter()  # word counter
-
-    import sys
-
     import autopath
     from alex.utils.fs import find
     from alex.utils.ui import getTerminalSize
@@ -305,8 +236,9 @@ if __name__ == '__main__':
                         action="store_true",
                         help='only normalise transcriptions, ignore audio '
                              'files')
-    parser.add_argument('-v', '--verbose',
+    parser.add_argument('-v',
                         action="store_true",
+                        dest="verbose",
                         help='set verbose output')
     parser.add_argument('-w', '--word-list',
                         default='word_list',
@@ -317,22 +249,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Ensure we can print unicode.
-    if not sys.stdout.isatty():
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-    if not sys.stderr.isatty():
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-
     # Do the copying.
-    if args.verbose:
-        escape_value = (lambda value: unicode(value).replace('\\', '\\\\')
-                        .replace('"', '\\"'))
-        print '*' * (getTerminalSize()[1] or 120)
-        print "The program was called with these arguments:"
-        print "\n".join('  {key}: "{value}"'.format(key=key,
-                                                    value=escape_value(value))
-                        for key, value in args._get_kwargs())
-        print '*' * (getTerminalSize()[1] or 120)
     n_overwrites, n_missing_wav, n_missing_trs = convert(args)
 
     # Report.
