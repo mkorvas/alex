@@ -38,7 +38,7 @@ if __name__ == '__main__':
     import autopath
 
 from alex.corpustools.asr.text_norm_en import exclude, normalise_text
-
+from alex.utils.fs import find
 
 from alex.utils.ui import getTerminalSize
 try:
@@ -122,12 +122,12 @@ def extract_wavs_trns(_file, outdir, trs_only=False, verbose=False):
         if verbose:
             print u" #f: {tgt}; # s: {start}; # e: {end}; t: {trs}".format(
                 tgt=os.path.basename(tgt_wav_fname), start=starttime,
-                end=endtime, trs=transcription.encode('UTF-8'))
+                end=endtime, trs=transcription)
 
         # Normalise
         transcription = normalise_text(transcription)
         if verbose:
-            print u"  after normalisation:", transcription.encode('UTF-8')
+            print u"  after normalisation:", transcription
         if exclude(transcription):
             if verbose:
                 print u"  ...excluded"
@@ -211,10 +211,18 @@ def convert(args):
 
 
 if __name__ == '__main__':
-    wc = collections.Counter()  # word counter
-    from alex.utils.fs import find
+    import sys
 
+    wc = collections.Counter()  # word counter
+
+    # Initialisation.
     random.seed(1)
+    if not sys.stdout.isatty():
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+    if not sys.stderr.isatty():
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
+    if not sys.stdin.isatty():
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
