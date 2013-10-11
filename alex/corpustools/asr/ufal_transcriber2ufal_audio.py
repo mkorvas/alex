@@ -37,8 +37,12 @@ import xml.dom.minidom
 if __name__ == '__main__':
     import autopath
 
-from alex.corpustools.asr.text_norm_en import exclude, normalise_text
 from alex.utils.fs import find
+
+_LANG2NORMALISATION_MOD = {
+    'cs': 'alex.corpustools.asr.text_norm_cs',
+    'en': 'alex.corpustools.asr.text_norm_en'
+}
 
 from alex.utils.ui import getTerminalSize
 try:
@@ -80,11 +84,16 @@ def save_transcription(trs_fname, trs):
     return existed
 
 
-def extract_wavs_trns(_file, outdir, trs_only=False, verbose=False):
+def extract_wavs_trns(_file, outdir, trs_only=False, lang='cs', verbose=False):
     """Extracts wavs and their transcriptions from the provided big wav and the
     transcriber file.
 
     """
+
+    # Import the appropriate normalisation module.
+    norm_mod_name = _LANG2NORMALISATION_MOD[lang]
+    norm_mod = __import__(norm_mod_name,
+                          fromlist=('exclude', 'normalise_text'))
 
     # Parse the file.
     doc = xml.dom.minidom.parse(_file)
@@ -125,10 +134,10 @@ def extract_wavs_trns(_file, outdir, trs_only=False, verbose=False):
                 end=endtime, trs=transcription)
 
         # Normalise
-        transcription = normalise_text(transcription)
+        transcription = norm_mod.normalise_text(transcription)
         if verbose:
             print u"  after normalisation:", transcription
-        if exclude(transcription):
+        if norm_mod.exclude(transcription):
             if verbose:
                 print u"  ...excluded"
             continue
@@ -153,6 +162,7 @@ def convert(args):
     # Unpack the arguments.
     infname = args.infname
     outdir = args.outdir
+    lang = args.language
     verbose = args.verbose
     trs_only = args.only_transcriptions
     ignore_list_file = args.ignore
@@ -194,7 +204,7 @@ def convert(args):
             print u"Processing transcription file: ", trs_path
 
         cursize, cur_n_overwrites, cur_n_missing_wav, cur_n_missing_trs = \
-            extract_wavs_trns(trs_path, outdir, trs_only, verbose)
+            extract_wavs_trns(trs_path, outdir, trs_only, lang, verbose)
         size += cursize
         n_overwrites += cur_n_overwrites
         n_missing_wav += cur_n_missing_wav
@@ -251,6 +261,11 @@ if __name__ == '__main__':
                              'that should be ignored.  The globs are '
                              'interpreted wrt. the current working directory. '
                              'For an example, see the source code.')
+    parser.add_argument('-l', '--language',
+                        default='cs',
+                        metavar='CODE',
+                        help='Code of the language (e.g., "cs") of the '
+                             'transcriptions.')
     parser.add_argument('-t', '--only-transcriptions',
                         action="store_true",
                         help='only normalise transcriptions, ignore audio '
