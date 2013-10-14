@@ -18,6 +18,7 @@ _nonspeech_map = {
         '(QUIET)',
         '(CLEARING)',
         '<SILENCE>',
+        '< _SIL_ >',
     ),
     '_INHALE_': (
         '(BREATH)',
@@ -71,25 +72,35 @@ for uscored, forms in _nonspeech_map.iteritems():
 
 
 # substitutions {{{
-_subst = [('JESLTI', 'JESTLI'),
-          ('NMŮŽU', 'NEMŮŽU'),
-          ('_NOISE_KAM', '_NOISE_ KAM'),
-          ('(NOISE)KAM', '_NOISE_ KAM'),
-          ('6E', ' '),
-          ('OKEY', 'OK'),
-          ('OKAY', 'OK'),
-          ('ÁHOJ', 'AHOJ'),
-          ('ÁNO', 'ANO'),
-          ('BARANDOV', 'BARRANDOV'),
-          ('ZEA', 'ZE'),
-          ('LITŇANSKÁ', 'LETŇANSKÁ'),
-          ('ANÓ', 'ANO'),
-          ('NEVIM', 'NEVÍM'),
-          ]
+# NOTE that first items of the tuples are regular expressions, so some
+# characters are special.
+
+# These will be interpreted as whole words.
+_subst_words = [('JESLTI', 'JESTLI'),
+                ('NMŮŽU', 'NEMŮŽU'),
+                ('_NOISE_KAM', '_NOISE_ KAM'),
+                ('6E', ' '),
+                ('OKEY', 'OK'),
+                ('OKAY', 'OK'),
+                ('ÁHOJ', 'AHOJ'),
+                ('ÁNO', 'ANO'),
+                ('BARANDOV', 'BARRANDOV'),
+                ('ZEA', 'ZE'),
+                ('LITŇANSKÁ', 'LETŇANSKÁ'),
+                ('ANÓ', 'ANO'),
+                ('NEVIM', 'NEVÍM'),
+                ]
+
+# These will be matched anywhere (fractions of words).
+_subst_frac = [('(NOISE)KAM', '_NOISE_ KAM'),
+               ('\\^', ' '),
+               ]
 #}}}
-for idx, tup in enumerate(_subst):
-    pat, sub = tup
-    _subst[idx] = (re.compile(ur'\b{pat}\b'.format(pat=pat)), sub)
+_subst = list()
+for pat, sub in _subst_words:
+    _subst.append((re.compile(r'\b{pat}\b'.format(pat=pat)), sub))
+for pat, sub in _subst_frac:
+    _subst.append((re.compile(pat), sub))
 
 # hesitation expressions {{{
 _hesitation = ['AAAA', 'AAA', 'AA', 'AAH', 'A-', "-AH-", "AH-", "AH.", "AH",
@@ -106,10 +117,10 @@ _hesitation = ['AAAA', 'AAA', 'AA', 'AAH', 'A-', "-AH-", "AH-", "AH.", "AH",
                "URUH", "MMMM", "MMM", "OHM", "UMMM"]
 # }}}
 for idx, word in enumerate(_hesitation):
-    _hesitation[idx] = re.compile(ur'\b{word}\b'.format(word=word))
+    _hesitation[idx] = re.compile(r'\b{word}\b'.format(word=word))
 
-_excluded_characters = ['-', '+', '(', ')', '[', ']', '{', '}', '<', '>', '0',
-                        '1', '2', '3', '4', '5', '6', '7', '8', '9']
+_excluded_characters = ['-', '+', '=', '(', ')', '[', ']', '{', '}', '<', '>',
+                        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 _more_spaces = re.compile(r'\s{2,}')
 _sure_punct_rx = re.compile(r'[.?!",_]')
@@ -129,21 +140,26 @@ def normalise_text(text):
         text = pat.sub(sub, text)
     for word in _hesitation:
         text = word.sub('(HESITATION)', text)
+
+    # TODO Handle foreign words transcribed as (ORTOGRAPHIC (PRONOUNCED)) (?).
+    # This was already implemented somewhere.
+
     # Handle non-speech events (separate them from words they might be
     # agglutinated to, remove doubled parentheses, and substitute the known
     # non-speech events with the forms with underscores).
-    #
-    # This step can incur superfluous whitespace.
-    if '(' in text:
-        text = _parenthesized_rx.sub(r' (\1) ', text)
-        for parenized, uscored in _nonspeech_trl.iteritems():
-            text = text.replace(parenized, uscored)
-        text = _more_spaces.sub(' ', text.strip())
+    text = _parenthesized_rx.sub(r' (\1) ', text)
+    for parenized, uscored in _nonspeech_trl.iteritems():
+        text = text.replace(parenized, uscored)
+    text = _more_spaces.sub(' ', text.strip())
 
-    # remove signs of (1) incorrect pronunciation, (2) stuttering, (3) bargin
-    # return text.translate(None, '*+~')
+    # Remove signs of
+    #   (1) incorrect pronunciation,
+    #   (2) stuttering,
+    #   (3) barge-in.
     for char in '*+~':
         text = text.replace(char, '')
+
+    text = _more_spaces.sub(' ', text)
 
     return text
 #}}}
