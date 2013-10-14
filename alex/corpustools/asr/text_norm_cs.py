@@ -68,7 +68,7 @@ _nonspeech_map = {
 _nonspeech_trl = dict()
 for uscored, forms in _nonspeech_map.iteritems():
     for form in forms:
-        _nonspeech_trl[form] = uscored
+        _nonspeech_trl[form] = ' {usc} '.format(usc=uscored)
 
 
 # substitutions {{{
@@ -124,6 +124,7 @@ _excluded_characters = ['-', '+', '=', '(', ')', '[', ']', '{', '}', '<', '>',
 
 _more_spaces = re.compile(r'\s{2,}')
 _sure_punct_rx = re.compile(r'[.?!",_]')
+_loanword_rx = re.compile(r'\(([^(]*?)\s*\(([^)]*)\)\)')
 _parenthesized_rx = re.compile(r'\(+([^)]*)\)+')
 
 
@@ -141,8 +142,8 @@ def normalise_text(text):
     for word in _hesitation:
         text = word.sub('(HESITATION)', text)
 
-    # TODO Handle foreign words transcribed as (ORTOGRAPHIC (PRONOUNCED)) (?).
-    # This was already implemented somewhere.
+    # Handle foreign words transcribed as (ORTOGRAPHIC (PRONOUNCED)).
+    text = _loanword_rx.sub(r'\2', text)
 
     # Handle non-speech events (separate them from words they might be
     # agglutinated to, remove doubled parentheses, and substitute the known
@@ -159,7 +160,7 @@ def normalise_text(text):
     for char in '*+~':
         text = text.replace(char, '')
 
-    text = _more_spaces.sub(' ', text)
+    text = _more_spaces.sub(' ', text).strip()
 
     return text
 #}}}
