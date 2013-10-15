@@ -38,9 +38,9 @@ dct = set()
 try:
     with open(dctn, 'r') as dctf:
         for line in dctf:
-            line = line.split()
-            if line:
-                dct.add(line[0])
+            words = line.split()
+            if words:
+                dct.add(words[0])
 except IOError as er:
     print "No dictionary will be used to remove transcriptions."
 #}}}
