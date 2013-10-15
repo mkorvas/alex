@@ -94,6 +94,7 @@ _subst_words = [('JESLTI', 'JESTLI'),
 # These will be matched anywhere (fractions of words).
 _subst_frac = [('(NOISE)KAM', '_NOISE_ KAM'),
                ('\\^', ' '),
+               ('-li\\b', ' li'),
                ]
 #}}}
 _subst = list()
