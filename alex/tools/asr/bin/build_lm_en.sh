@@ -33,8 +33,8 @@ _NOISE_ _noise_
 _SIL_ sil
 END
 tee $WORK_DIR/dict_train |
-tee $WORK_DIR/dict_test  |
-tee -a $WORK_DIR/dict_full
+tee $WORK_DIR/dict_test  \
+>> $WORK_DIR/dict_full
 
 
 # Add pronunciations for each word

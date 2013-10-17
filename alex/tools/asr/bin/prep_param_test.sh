@@ -1,7 +1,7 @@
 #!/bin/bash
 # This encodes the test data.
 
-cd $WORK_DIR
+cd "$WORK_DIR"
 
 # Create the list file we need to send to HCopy to convert .wav files to .mfc.
 WAVMAP="$WORK_DIR"/test_wavs.txt
@@ -22,7 +22,6 @@ LC_ALL=C join -t'	' -j1 -o1.2,0 "$WAVMAP" "$TEMP_DIR"/new_wavs.lst \
 	| gawk -- 'BEGIN {FS = "\t"; OFS = " "}
 							 {print $1, "'"$TEST_DATA"'/" $2 ".mfc"}
 						' >"$WORK_DIR"/test_wav_mfc.scp
-rm -f "$TEMP_DIR"/new_wavs.lst
-
+rm -f $TEMP_DIR/new_wavs.lst
 
 HCopy -T 1 -C $TRAIN_COMMON/configwav -C $TRAIN_COMMON/config -S $WORK_DIR/test_wav_mfc.scp > $LOG_DIR/hcopy_test.log

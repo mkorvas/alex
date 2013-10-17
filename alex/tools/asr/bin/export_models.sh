@@ -1,5 +1,5 @@
 #!/bin/bash
-# Export hmm models
+# Exports HMM models for use with Julius.
 #
 # Parameters:
 #  1 - Directory name of model to be exported
@@ -26,7 +26,9 @@ cp $WORK_DIR/config/monophones1 $WORK_DIR/export_models
 if [ "$2" = "text" ]; then
 	mkdir $TEMP_DIR/out
 	touch $TEMP_DIR/empty
-	HHEd -H $WORK_DIR/$1/hmmdefs -H $WORK_DIR/$1/macros -M $TEMP_DIR/out $TEMP_DIR/empty $WORK_DIR/export_models/tiedlist
+	HHEd -H $WORK_DIR/$1/hmmdefs -H $WORK_DIR/$1/macros -M $TEMP_DIR/out \
+		$TEMP_DIR/empty $WORK_DIR/export_models/tiedlist \
+		>$LOG_DIR/hhed_binary2text.log
 	mv $TEMP_DIR/out/* $WORK_DIR/export_models/
 	rmdir $TEMP_DIR/out
 	rm $TEMP_DIR/empty

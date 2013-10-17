@@ -2,6 +2,9 @@
 # Aligns a new MLF based on the best monophone models.
 #
 
+# Stop on errors.
+set -e
+
 # Do alignment using our best monophone models to create a phone-level MLF
 # HVite parameters
 #  -l       Path to use in the names in the output MLF
@@ -18,7 +21,8 @@
 #  -I       Word level MLF file
 #  -S       File contain the list of MFC files
 
-HVite -A -T 1 -o SWT -b silence -C $TRAIN_COMMON/config -a -H $WORK_DIR/hmm5/macros -H $WORK_DIR/hmm5/hmmdefs -i $WORK_DIR/aligned.mlf -m -t 150.0 -I $WORK_DIR/train_words.mlf -S $WORK_DIR/train.scp $WORK_DIR/dict_train_sp_sil $WORK_DIR/config/monophones1 > $LOG_DIR/hvite_align.log
+# HVite -A -T 1 -o SWT -b silence -C $TRAIN_COMMON/config -a -H $WORK_DIR/hmm5/macros -H $WORK_DIR/hmm5/hmmdefs -i $WORK_DIR/aligned.mlf -m -t 150.0 -I $WORK_DIR/train_words.mlf -S $WORK_DIR/train.scp $WORK_DIR/dict_train_sp_sil $WORK_DIR/config/monophones1 > $LOG_DIR/hvite_align.log
+HVite -A -T 1 -o SWT -C $TRAIN_COMMON/config -a -H $WORK_DIR/hmm5/macros -H $WORK_DIR/hmm5/hmmdefs -i $WORK_DIR/aligned.mlf -m -t 150.0 -I $WORK_DIR/train_words.mlf -S $WORK_DIR/train.scp $WORK_DIR/dict_train_sp_sil $WORK_DIR/config/monophones1 > $LOG_DIR/hvite_align.log
 
 # We'll get a "sp sil" sequence at the end of each sentance.  Merge these
 # into a single sil phone.  Also might get "sil sil", we'll merge anything

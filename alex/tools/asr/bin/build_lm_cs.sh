@@ -67,17 +67,23 @@ echo "_NOISE_" >> $WORK_DIR/word_list_full
 # Build the word network as a word loop of words in the testing data
 HBuild -A -T 1 -C $TRAIN_COMMON/configrawmit -u '<UNK>' -s '<s>' '</s>' $WORK_DIR/word_list_test $WORK_DIR/wdnet_zerogram > $LOG_DIR/hbuild.log
 
+# Regenerate all_trns if needed.
+if [ \! -f $DATA_SOURCE_DIR/wdnet_bigram -o \
+		 \! -f $DATA_SOURCE_DIR/arpa_trigram ]; then
+	find -L $TRAIN_DATA_SOURCE -name '*.trn' \
+		| xargs sed -e '$a\' \
+		| sed s/\_SIL\_/\ /g >$WORK_DIR/all_trns
+	# NOTE This could be configurable -- whether the LM should be built from
+	# training data or test data.
+  # find -L $TEST_DATA_SOURCE -name '*.trn' | xargs sed -e '$a\' | sed s/\_SIL\_/\ /g >> $WORK_DIR/all_trns
+fi
+
 if [ -f $DATA_SOURCE_DIR/wdnet_bigram ]
 then
   cp $DATA_SOURCE_DIR/wdnet_bigram $WORK_DIR/wdnet_bigram
 else
-  rm $WORK_DIR/all_trns
-  find -L $TRAIN_DATA_SOURCE -name '*.trn' | xargs sed -e '$a\' | sed s/\_SIL\_/\ /g >> $WORK_DIR/all_trns
-	# NOTE This could be configurable -- whether the LM should be built from
-	# training data or test data.
-  # find -L $TEST_DATA_SOURCE -name '*.trn' | xargs sed -e '$a\' | sed s/\_SIL\_/\ /g >> $WORK_DIR/all_trns
-
-  ngram-count -text $WORK_DIR/all_trns -order 2 -wbdiscount -interpolate -lm $WORK_DIR/arpa_bigram
+	ngram-count -text $WORK_DIR/all_trns -order 2 -wbdiscount -interpolate 
+	-lm $WORK_DIR/arpa_bigram
   ngram -lm $WORK_DIR/arpa_bigram -ppl $WORK_DIR/all_trns
 
   HBuild -A -T 1 -C $TRAIN_COMMON/configrawmit -u '<UNK>' -s '<s>' '</s>' -n $WORK_DIR/arpa_bigram -z $WORK_DIR/word_list_full $WORK_DIR/wdnet_bigram > $LOG_DIR/hbuild.log
@@ -87,13 +93,8 @@ if [ -f $DATA_SOURCE_DIR/arpa_trigram ]
 then
   cp $DATA_SOURCE_DIR/arpa_trigram $WORK_DIR/arpa_trigram
 else
-  rm $WORK_DIR/all_trns
-  find -L $TRAIN_DATA_SOURCE -name '*.trn' | xargs sed -e '$a\' | sed s/\_SIL\_/\ /g >> $WORK_DIR/all_trns
-	# NOTE This could be configurable -- whether the LM should be built from
-	# training data or test data.
-  # find -L $TEST_DATA_SOURCE -name '*.trn' | xargs sed -e '$a\' | sed s/\_SIL\_/\ /g >> $WORK_DIR/all_trns
-
-  ngram-count -text $WORK_DIR/all_trns -order 3 -wbdiscount -interpolate -lm $WORK_DIR/arpa_trigram
+	ngram-count -text $WORK_DIR/all_trns -order 3 -wbdiscount -interpolate 
+	-lm $WORK_DIR/arpa_trigram
   ngram -lm $WORK_DIR/arpa_trigram -ppl $WORK_DIR/all_trns
 
   cp $WORK_DIR/dict_full $WORK_DIR/dict_hdecode

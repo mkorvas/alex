@@ -19,6 +19,7 @@ fi
 
 if [[ -n "$2" ]]
 then
-  head -n $2 $WORK_DIR/test.scp > $TEMP_DIR/test_short.scp
-  mv $TEMP_DIR/test_short.scp $WORK_DIR/test.scp
+	echo -e "$2+1,\$d\nwq" | ed -s $WORK_DIR/test.scp 2>/dev/null \
+		|| true  # ed fails iff the file has less than "$2" lines
+						 # That is nothing wrong, so we ignore it silently.
 fi

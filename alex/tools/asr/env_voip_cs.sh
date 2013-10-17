@@ -1,11 +1,14 @@
 #!/bin/bash
-# These are used by the HTK training recipe for Czech
+# These variable settings are used by the HTK training recipe for Czech.
 #
-# Using the bash shell, you can source it ( `. XXX` )
-# from the training script.
+# Using the bash shell, you can source it ( `. XXX` ) from the training 
+# script.
 #
-# You'll obviously need to change the paths to
-# reflect reality in your world.
+# You'll obviously need to change the paths to reflect reality in your 
+# world.
+
+# Make everything anew? (anything but undefined, '', and 'no' means yes)
+THOROUGH=yes
 
 HOME_DIR=`pwd`;export HOME_DIR
 
@@ -31,9 +34,13 @@ TRAIN_COMMON=$HOME_DIR/common;export TRAIN_COMMON
 # This should be set to split the training data into about 1 hour chunks.
 HEREST_SPLIT=5;export HEREST_SPLIT
 
-# Causes training to be split amoung multiple threads (for multi-core
+# Causes training to be split among multiple threads (for multi-core 
 # machines), you'll need to have enough memory as well.
 HEREST_THREADS=5;export HEREST_THREADS
+
+# Causes decoding to be split among multiple processes.  DEC_N_PROCS 
+# specifies how many there will be.
+export DEC_N_PROCS=2
 
 # Size of the reduced training set
 N_TRAIN_FILES=500000;export N_TRAIN_FILES
@@ -51,4 +58,3 @@ SFT=8.0;export SFT
 # Train cross word triphone models or word internal triphone models?
 #CROSS=cross;export CROSS
 CROSS=wit;export CROSS
-

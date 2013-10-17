@@ -14,9 +14,9 @@ use Encode;
 # If you want the script to operate in another encoding, set the EV_encoding
 # environment variable to the desired encoding.
 #
-# This is a rewrite of "vyslov" shell-script by Nino Peterek and Jan Oldrich Kruza, which was using tools
-# written by Pavel Ircing. These are copy-pasted including comments into this
-# script.
+# This is a rewrite of "vyslov" shell-script by Nino Peterek and Jan 
+# Oldrich Kruza, which was using tools written by Pavel Ircing. These are 
+# copy-pasted including comments into this script.
 
 my $enc = 'utf8';
 
@@ -153,7 +153,7 @@ sub exceptions {
     s/^RADIO/RADYO/g;
     s/RELATIV/RELATYV/g;
     s/RESTITU/RESTYTU/g;
-    s/ROCK/ROK/g;
+		s/^ROCK/ROK/g;
     s/^ROZ/ROZ!/g;
     s/RUTIN/RUTYN/g;
     s/^RÁDI(.)/RÁDY$1/g;
@@ -182,8 +182,8 @@ sub exceptions {
     s/UNIVER/UNYVER/g;
     s/VENTI/VENTY/g;
     s/VERTIK/VERTYK/g;
-    s/SEDUMNÁCT0HO/VERTYK/g;
-    s/ŠEST6/VERTYK/g;
+    # s/SEDUMNÁCT0HO/VERTYK/g;
+    # s/ŠEST6/VERTYK/g;
 }
 
 sub transcription {

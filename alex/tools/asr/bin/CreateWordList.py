@@ -5,7 +5,8 @@ import glob
 import sys
 
 # Initialisation.
-dctn = None
+dctn = '-'  # This is a special value for this argument, meaning no dictionary
+            # should be used.
 pats = list()
 
 # Read the command line arguments.
@@ -16,15 +17,16 @@ except IndexError:
     pass
 
 # Load the dictionary.
-dct = set()
-try:
-    with open(dctn, 'r') as dctf:
-        for line in dctf:
-            line = line.split()
-            if line:
-                dct.add(line[0])
-except IOError:
-    pass
+if dctn != '-':
+    dct = set()
+    try:
+        with open(dctn, 'r') as dctf:
+            for line in dctf:
+                line = line.split()
+                if line:
+                    dct.add(line[0])
+    except IOError:
+        pass
 
 # Collect all filenames from the globs passed in as arguments.
 fns = list()

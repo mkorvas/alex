@@ -3,7 +3,7 @@
 
 cd "$WORK_DIR"
 
-# Create the list file we need to send to HCopy to convert .wav files to .mfc
+# Create the list file we need to send to HCopy to convert .wav files to .mfc.
 WAVMAP="$WORK_DIR"/train_wavs.txt
 MFCLST="$WORK_DIR"/train_mfcs.txt
 # Find wavs to be coded.

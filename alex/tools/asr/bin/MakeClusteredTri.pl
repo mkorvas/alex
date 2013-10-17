@@ -56,5 +56,3 @@ for ($i = 0; $i < $numStates; $i++)
 {
     print $outStates[$i];
 }
-
-

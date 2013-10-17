@@ -1,3 +1,6 @@
+# MaK: make sure the transcription is surrounded by sil-s.
+IS sil sil
+#
 ME sil sp sil
 ME sil sil sp
 ME sil sil sil

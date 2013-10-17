@@ -4,6 +4,9 @@
 
 source env_voip_cs.sh
 
+# Stop on errors.
+set -e
+
 date
 
 echo "Training word internal triphone model for English"

@@ -3,8 +3,11 @@
 # this script can be used to flat start the models using the word 
 # level MLF of WSJ0.
 
+# Stop on errors.
+set -e
+
 cd $WORK_DIR
-rm -f -r hmm0 hmm1 hmm2 hmm3 hmm4 hmm5
+rm -rf hmm0 hmm1 hmm2 hmm3 hmm4 hmm5
 mkdir hmm0 hmm1 hmm2 hmm3 hmm4 hmm5
 
 # First convert the word level MLF into a phone MLF

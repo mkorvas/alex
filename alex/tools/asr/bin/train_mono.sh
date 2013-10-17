@@ -6,6 +6,9 @@
 #  $1 - "flat" if we are flat starting from monophone models living
 #       in hmm5 in this directory.
 
+# Stop on errors.
+set -e
+
 cd $WORK_DIR
 
 # Cleanup old files and directories

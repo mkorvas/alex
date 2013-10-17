@@ -31,12 +31,12 @@ while ($line = <IN>)
 {
     if (index($line, "BEGINHMM") > 0)
     {
-	$inBody = 1;
+        $inBody = 1;
     }
 
     if ($inBody)
     {
-	$body = $body . $line;
+        $body = $body . $line;
     }
 }
 close IN;

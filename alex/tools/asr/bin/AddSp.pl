@@ -43,7 +43,7 @@ while ($line = <IN>)
         {
             print $line . " sp\n";
 
-            # See if we are suppose to add a sil variant as well
+            # See if we are supposed to add a sil variant as well
             if ($addSil)
             {
                 print $line . " sil\n";
