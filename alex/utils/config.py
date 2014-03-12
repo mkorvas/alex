@@ -25,6 +25,7 @@ config = None
 
 online_update_server = "https://vystadial.ms.mff.cuni.cz/download/alex/"
 
+
 def as_project_path(path):
     return os.path.join(env.root(), path)
 
@@ -32,6 +33,19 @@ __current_size = 0  # global state variable, which exists solely as a
                     # workaround against Python 3.3.0 regression
                     # http://bugs.python.org/issue16409
                     # fixed in Python 3.3.1
+
+
+def to_project_path(path):
+    """Converts a relative or absoulute file system path to a path relative to project root."""
+    path = os.path.abspath(path)
+    root = env.root()
+    if not path.startswith(root):
+        raise Exception('Path is outside the root:' + path)
+    path = path[len(root):]
+    if path.startswith(os.path.sep):
+        return path[1:]
+    return path
+
 
 def callback_download_progress(blocks, block_size, total_size):
     """callback function for urlretrieve that is called when connection is
@@ -54,13 +68,17 @@ def callback_download_progress(blocks, block_size, total_size):
     else:
         current_size = min(blocks * block_size, total_size)
 
-    # number of dots on thermometer scale
-    avail_dots = width - 2
-    shaded_dots = int(math.floor(float(current_size) / total_size * avail_dots))
-    progress = '[' + '.' * shaded_dots + ' ' * (avail_dots - shaded_dots) + ']'
+    if total_size > 0:
+        # number of dots on thermometer scale
+        avail_dots = width - 2
+        shaded_dots = int(math.floor(float(current_size) / total_size * avail_dots))
+        progress = '[' + '.' * shaded_dots + ' ' * (avail_dots - shaded_dots) + ']'
 
-    if progress:
-        sys.stdout.write("\r" + progress)
+        if progress:
+            sys.stdout.write("\r" + progress)
+    else:
+        sys.stdout.write("\r The downloaded file is empty")
+
 
 def set_online_update_server(server_name):
     """
@@ -74,6 +92,7 @@ def set_online_update_server(server_name):
     global online_update_server
 
     online_update_server = server_name
+
 
 def online_update(file_name):
     """
@@ -106,7 +125,7 @@ def online_update(file_name):
         print "-"*80
 
         # get filename for temp file in current directory
-        (fd, tmpfile) = tempfile.mkstemp(".tmp", prefix=fn + ".", )
+        (fd, tmpfile) = tempfile.mkstemp(".tmp", prefix=fn + ".",)
         os.close(fd)
         os.unlink(tmpfile)
 
@@ -267,6 +286,12 @@ class Config(object):
         cfg_str = re.sub(r".*password.*",
                          "# this line was removed since it included a password",
                          cfg_str)
+        cfg_str = re.sub(r".*user_id.*",
+                         "# this line was removed since it included a password",
+                         cfg_str)
+        cfg_str = re.sub(r".*api_key.*",
+                         "# this line was removed since it included a password",
+                         cfg_str)
         return cfg_str
 
     @classmethod
@@ -370,7 +395,7 @@ class Config(object):
                      into self's one
         """
         # pylint: disable-msg=E0602
-        if type(other) is str:
+        if type(other) is str or type(other) is unicode:
             other = Config(other)
         self.update(other.config)
 

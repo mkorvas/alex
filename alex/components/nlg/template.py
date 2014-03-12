@@ -109,19 +109,16 @@ class AbstractTemplateNLG(object):
         of the slots are substituted with a generic value.
         """
         tpl = None
-
         # try to find increasingly generic templates
         # limit the complexity of the search
         if len(svs) == 0:
             rng = []
         elif len(svs) == 1:
-            rng = [1, ]
+            rng = [1]
         elif len(svs) == 2:
-            rng = [1, 2, ]
-        elif len(svs) == 3:
-            rng = [1, 2, 3, ]
+            rng = [1, 2]
         else:
-            rng = [1, 2, len(svs) - 1, len(svs)]
+            rng = [1, len(svs) - 1, len(svs)]
 
         for r in rng:
             for cmb in itertools.combinations(svs, r):
@@ -251,31 +248,33 @@ class AbstractTemplateNLG(object):
         Then try to find a relaxed match of a more generic template and
         fill in the actual values of the variables.
         """
+        utterance = ''
         try:
             if unicode(da) == 'irepeat()':
                 # just return last utterance
-                pass
+                utterance = self.last_utterance
             else:
                 # try to return exact match
-                self.last_utterance = \
-                        self.random_select(self.templates[unicode(da)])
+                utterance = self.random_select(self.templates[unicode(da)])
         except KeyError:
             # try to find a relaxed match
             svs = da.get_slots_and_values()
 
             try:
-                self.last_utterance = self.match_and_fill_generic(da, svs)
+                utterance = self.match_and_fill_generic(da, svs)
 
             except TemplateNLGException:
                 # try to find a template for each dialogue act item and concatenate them
                 try:
-                    self.last_utterance = self.compose_utterance(da)
+                    utterance = self.compose_utterance(da)
 
                 except TemplateNLGException:
                     # nothing to do, I must backoff
-                    self.last_utterance = self.backoff(da)
+                    utterance = self.backoff(da)
 
-        return self.last_utterance
+        if re.match(r'^(inform|i?confirm|request|hello)', unicode(da)):
+            self.last_utterance = utterance
+        return utterance
 
     def compose_utterance_single(self, da):
         """\
@@ -325,6 +324,7 @@ class AbstractTemplateNLG(object):
                     # try to find an exact match
                     dax_utt = self.random_select(self.templates[unicode(dax)])
                     dax_len = sub_len
+                    break
                 except KeyError:
                     # try to find a relaxed match
                     svsx = dax.get_slots_and_values()
@@ -394,7 +394,7 @@ class TemplateNLG(AbstractTemplateNLG):
         """
         svs_dict = dict(svs)
         if self.preprocessing is not None:
-            svs_dict = self.preprocessing.preprocess(svs_dict)
+            tpl, svs_dict = self.preprocessing.preprocess(tpl, svs_dict)
         out_text = tpl.format(**svs_dict)
         if self.postprocessing is not None:
             return self.postprocessing.postprocess(out_text)

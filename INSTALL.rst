@@ -12,8 +12,8 @@ Ask the root on the computer to run:
 
 .. code-block:: bash
 
-  sudo apt-get install gfortran libatlas-base-dev portaudio19-dev \
-      flac speex sox mplayer libsqlite3-dev python-wxgtk2.8
+  sudo apt-get install gfortran libatlas-base-dev portaudio19-dev swig \
+      flac speex sox mplayer libsqlite3-dev python-wxgtk2.8 libmad0-dev
 
 To get latest versions of the following python packages, I recommend to run these commands:
 
@@ -32,9 +32,14 @@ To get latest versions of the following python packages, I recommend to run thes
   sudo pip install --upgrade boto
   sudo pip install --upgrade pysox
   sudo pip install --upgrade jinja2
+  sudo pip install --upgrade suds
+
+  # pykaldi
+  sudo pip install --upgrade cython
+  sudo pip install --upgrade pystache
+  sudo pip install --upgrade pyyaml
 
   sudo easy_install wget
-  sudo easy_install pymad
   sudo easy_install ipdb
   sudo easy_install nose
 
@@ -53,12 +58,24 @@ This version supports non-blocking audio.
   cd PyAudio
   python ./setup.py install
 
+pymad
+~~~~~
+Get the latest version of ``pymad`` from https://github.com/pymad/pymad.
+
+.. code-block:: bash
+
+  git clone https://github.com/pymad/pymad.git
+  cd pymad/src
+  python ./setup.py install
+
+
 flite
 ~~~~~
 Get the latest ``flite`` from http://www.festvox.org/flite/download.html and build it by following the these commands:
 
 .. code-block:: bash
 
+  wget http://www.festvox.org/flite/packed/flite-1.4/flite-1.4-release.tar.bz2
   tar -xvjf flite-1.4-release.tar.bz2
   cd flite-1.4-release
   ./configure
@@ -71,6 +88,54 @@ HTK
 ~~~~
 Get the latest HTK (3.4.1 tested) from http://htk.eng.cam.ac.uk/download.shtml . Build and install the HTK following
 the HTK's instructions.
+
+KALDI
+~~~~~
+In order to use Kaldi decoder, build ``pykaldi`` fork of Kaldi from https://github.com/UFAL-DSG/pykaldi,
+install patched ``OpenFST`` from ``pykaldi``, then ``pyfst`` from https://github.com/UFAL-DSG/pyfst, and finally 
+install ``pykaldi`` Python extension.
+
+First,  build Kaldi fork ``pykaldi`` as follows:
+
+.. code-block:: bash
+
+  git clone https://github.com/UFAL-DSG/pykaldi
+  cd pykaldi/tools
+  make atlas   # Just downloads headers
+  make openfst_tgt  # Install patched OpenFST LOCALLY!
+  cd ../src
+  ./configure  # Should find ATLAS libraries which you have installed via apptitude (easier way).
+  make && make test
+  cd dec-wrap && make && make test  # Directory needed for pykaldi Python wrapper
+
+Install patched ``OpenFST`` system wide. The following commands install the already built ``OpenFST`` 
+library from previous step:
+
+.. code-block:: bash
+
+    cd pykaldi/tools/openfst
+    ./configure  --prefix=/usr  # Sets the path to system wide installation directory
+    sudo make install  # Copies the already built and pathced libraries from 'make openfst_tgt' step.
+
+
+Install ``pyfst`` by
+
+.. code-block:: bash
+
+    sudo pip install --upgrade pystache pyyaml cython
+    
+    git clone https://github.com/UFAL-DSG/pyfst.git pyfst
+    cd pyfst
+    sudo python setup.py install
+
+
+Finally, install the ``pykaldi`` Python extension (a wrapper around Kaldi decoders):
+
+.. code-block:: bash
+
+    cd pykaldi/src/pykaldi
+    sudo make install
+
 
 SRILM
 ~~~~~
@@ -99,6 +164,24 @@ then
   python setup-pjsuaxt.py install
 
 This will install the ``pjsuaxt`` library.
+
+Morfodita
+~~~~~~~~~
+
+Get the supported morfodita from GitHub.
+To install ``morfodita``, follow these instructions:
+
+.. code-block:: bash
+
+  git clone git@github.com:ufal/morphodita.git
+  cd morphodita/src
+  make
+  cd ../bindings/python
+  make PYTHON_INCLUDE=/usr/include/python2.7/
+
+  cp -R ./ufal /usr/local/lib/python2.7/dist-packages
+  cp ./morphodita_python.so /usr/local/lib/python2.7/dist-packages
+
 
 OpenJulius
 ~~~~~~~~~~

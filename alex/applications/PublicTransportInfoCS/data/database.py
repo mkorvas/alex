@@ -8,37 +8,43 @@ import os
 import re
 import sys
 
+import autopath
+
+from alex.utils.config import online_update, to_project_path
+
 __all__ = ['database']
 
 
 database = {
     "task": {
-        "find_connection": ["najít spojení", "najít spoj", "zjistit spojení", "zjistit spoj", "hledám spojení", ],
-        "find_platform": ["najít nastupště", "zjistit nástupiště", ],
+        "find_connection": ["najít spojení", "najít spoj", "zjistit spojení",
+                            "zjistit spoj", "hledám spojení", 'spojení', 'spoj',
+                           ],
+        "find_platform": ["najít nástupiště", "zjistit nástupiště", ],
+        'weather': ['počasí', ],
     },
     "time": {
-        "2:00": set(["dvě hodiny", ]),
-    },
-    "time_rel": {
-        "now": ["nyní", "teď", "teďka", "hned", "nejbližší", "tuto chvíli"],
-        "0:05": ["pět minut", ],
-        "0:10": ["deset minut", ],
-        "0:20": ["dvacet minut", ],
+        "now": ["nyní", "teď", "teďka", "hned", "nejbližší", "v tuto chvíli"],
+        "0:01": ["minutu", ],
+        "0:15": ["čtvrt hodiny", ],
         "0:30": ["půl hodiny", ],
         "0:45": ["tři čtvrtě hodiny", ],
         "1:00": ["hodinu", ],
-        "2:00": ["dvě hodiny", ],
     },
     "date_rel": {
-        "today": ["dnes", "dneska", ],
-        "tomorrow": ["zítra", ],
-        "day_after_tomorrow": ["pozítří", ],
+        "today": ["dnes", "dneska",
+                  "dnešek", "dneška", "dnešku", "dneškem",
+                  "dnešní", "dnešnímu", "dnešního", "dnešním"],
+        "tomorrow": ["zítra", "zejtra",
+                     "zítřek", "zítřka", "zítřku", "zítřkem",
+                     "zítřejší", "zítřejšímu", "zítřejším", "zítřejšího"],
+        "day_after_tomorrow": ["pozítří", "pozejtří"],
     },
     "stop": {
     },
-    "trans_type": {
+    "vehicle": {
         "bus": ["bus", "busem", "autobus", "autobusy", "autobusem", "autobusové"],
-        "tram": ["tram", "tramvaj", "tramvajoví", "tramvaje", "tramvají", "tramvajka", "tramvajkou", "šalina", "šalinou"],
+        "tram": ["tram", "tramvaj", "tramvajový", "tramvaje", "tramvají", "tramvajka", "tramvajkou", "šalina", "šalinou"],
         "metro": ["metro", "metrem", "metrema", "metru", "krtek", "krtkem", "podzemka", "podzemkou"],
         "train": ["vlak", "vlakem", "vlaky", "vlakovém", "rychlík", "rychlíky", "rychlíkem", "panťák", "panťákem"],
         "cable_car": ["lanovka", "lanovky", "lanovce", "lanovkou", "lanová dráha", "lanovou dráhou"],
@@ -50,6 +56,8 @@ database = {
         "pm": ["odpo", "odpoledne", ],
         "evening": ["večer", "podvečer", ],
         "night": ["noc", "noci"],
+    },
+    "city": {
     },
 }
 
@@ -72,54 +80,36 @@ NUMBERS_ORD = ["nultý", "první", "druhý", "třetí", "čtvrtý", "pátý", "�
 #   <value>; <phrase>; <phrase>; ...
 # where <value> is the value for a slot and <phrase> is its possible surface
 # form.
-STOPS_FNAME = "stops.expanded.txt"  # this has been expanded to include
-                                    # other forms of the words; still very
-                                    # dirty, though
-#STOPS_FNAME = "stops.txt"
+STOPS_FNAME = "stops.expanded.txt"
+CITIES_FNAME = "cities.expanded.txt"
 
-_substs_lit = [
-    ('\\bn\\.L\\.', ['nad Labem']),
-    ('\\bn\\.Vlt\\.', ['nad Vltavou']),
-    ('žel\\.st\\.', ['železniční stanice']), # FIXME None would say this.
-                                              # Factorise.
-    ('aut\\.st\\.', ['autobusová stanice', 'stanice autobusů']),
-    ('žel\\.zast\\.', ['železniční zastávka']),
-    ('[Kk]ult\\.dům', ['kulturní dům', 'kulturák']),
-    ('n\\.Č\\.[Ll]\\.', ['nad černými lesy']),
-    ('n\\.[Ll]\\.', ['nad lesy']),
-    ('St\\.Bol\\.', ['stará boleslav']),
-    ('\\brozc\\.', ['rozcestí']),
-    ('\\bnádr\\.', ['nádraží']),
-    ('\\bsídl\\.', ['sídliště']),
-    ('\\bnám\\.', ['náměstí']),
-    ('\\bnem\\.', ['nemocnice']),
-    ('\\bzdr\\.stř\\.', ['zdravotní středisko']),
-    ('\\bzdrav\\.stř\\.', ['zdravotní středisko']),
-    ('\\bhost\\.', ['hostinec']),
-    ('\\bháj\\.', ['hájovna']),
-    ('\\bkřiž\\.', ['křižovatka']),
-    ('\\bodb\\.', ['odbočka']),
-    ('\\bzast\\.', ['zastávka']),
-    ('\\bhl\\.sil\\.', ['hlavní silnice']),
-    ('\\bn\\.', ['nad']),
-    ('\\bp\\.', ['pod']),
-    ('\\b(\w)\\.', ['\\1']), # ideally uppercase...
-    ('\\bI$', ['jedna']),
-    ('\\bII\\b', ['dva']),
-    ('\\bD1\\b', ['dé jedna']),
-    ('\\bD8\\b', ['dé osm']),
-]
-
-_substs = [(re.compile(regex), [val + ' ' for val in vals]) for (regex, vals) in _substs_lit]
-_num_rx = re.compile('[1-9][0-9]*')
-_num_rx_exh = re.compile('^[1-9][0-9]*$')
+# load new stops & cities list from the server if needed
+online_update(to_project_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), STOPS_FNAME)))
+online_update(to_project_path(os.path.join(os.path.dirname(os.path.abspath(__file__)), CITIES_FNAME)))
 
 
 def db_add(category_label, value, form):
     """A wrapper for adding a specified triple to the database."""
-    form = form.strip()
+#    category_label = category_label.strip()
+#    value = value.strip()
+#    form = form.strip()
+
     if len(value) == 0 or len(form) == 0:
         return
+
+    if value in database[category_label] and isinstance(database[category_label][value], list):
+        database[category_label][value] = set(database[category_label][value])
+
+#    if category_label == 'stop':
+#        if value in set(['Nová','Praga','Metra','Konečná','Nádraží',]):
+#            return
+            
+#    for c in '{}+/&[],-':
+#        form = form.replace(' %s ' % c, ' ')
+#        form = form.replace(' %s' % c, ' ')
+#        form = form.replace('%s ' % c, ' ')
+#    form = form.strip()
+
     database[category_label].setdefault(value, set()).add(form)
 
 
@@ -147,8 +137,9 @@ def add_time():
         <hour>
         <hour> hodin(a/y)
         <hour> hodin(a/y) <minute>
-        <houn> <minute>
+        <hour> <minute>
         půl/čtvrt/tři čtvrtě <hour>
+        <minute> minut(u/y)
     where <hour> and <minute> are spelled /given as numbers.
 
     Cannot yet handle:
@@ -160,6 +151,10 @@ def add_time():
     hr_id_stem = 'hodin'
     hr_endings = {1: [('u', 'u'), ('a', 'a')],
                   2: [('y', '')], 3: [('y', '')], 4: [('y', '')]}
+
+    min_id_stem = 'minut'
+    min_endings = {1: [('u', 'u'), ('a', 'a')],
+                   2: [('y', '')], 3: [('y', '')], 4: [('y', '')]}
 
     for hour in xrange(24):
         # set stems for hours (cardinal), hours (ordinal)
@@ -208,6 +203,18 @@ def add_time():
                 add_db_time(hour, minute, "{h} {m}",
                             {'h': hr_str_stem + hr_str_end, 'm': min_str})
 
+    # YY minut(u/y)
+    for minute in xrange(60):
+        min_str_stem = numbers_str[minute]
+        if minute == 22:
+            min_str_stem = 'dvacet dva'
+        if minute == 1:
+            min_str_stem = 'jedn'
+
+        for min_id_end, min_str_end in min_endings.get(minute, [('', '')]):
+            add_db_time(0, minute, "{m} {mi}", {'m': min_str_stem + min_str_end,
+                                                'mi': min_id_stem + min_id_end})
+
 
 def add_db_time(hour, minute, format_str, replacements):
     """Add a time expression to the database
@@ -216,77 +223,62 @@ def add_db_time(hour, minute, format_str, replacements):
     db_add("time", time_val, format_str.format(**replacements))
 
 
-def preprocess_stops_line(line, expanded_format=False):
-    line = line.strip()
-    if expanded_format:
-        line = line.split(';')
-        name = line[0]
-        forms = line
-    else:
-        name = line
-        forms = [line, ]
-
-    # Do some basic pre-processing. Expand abbreviations.
-    new_forms = []
-    for form in forms:
-        new_form = form
-        for regex, subs in _substs:
-            if regex.search(form):
-                for sub in subs:
-                    new_form = regex.sub(sub, new_form)
-
-        new_forms.append(new_form)
-    forms = new_forms
-
-    # Spell out numerals.
-    if any(map(_num_rx.search, forms)):
-        old_names = forms
-        forms = list()
-        for name in old_names:
-            new_words = list()
-            for word in name.split():
-                if _num_rx_exh.match(word):
-                    try:
-                        new_words.append(spell_number(int(word)))
-                    except:
-                        new_words.append(word)
-                else:
-                    new_words.append(word)
-            forms.append(' '.join(new_words))
-
-    # Remove extra spaces, lowercase.
-    forms = [' '.join(form.replace(',', ' ').replace('-', ' ')
-                      .replace('(', ' ').replace(')', ' ').replace('5', ' ')
-                      .replace('0', ' ').replace('.', ' ').split()).lower()
-             for form in forms]
-
+def preprocess_cl_line(line):
+    """Process one line in the category label database file."""
+    name, forms = line.strip().split("\t")
+    forms = [form.strip() for form in forms.split(';')]
     return name, forms
 
 
-def add_stops():
-    """Adds names of all stops as listed in `STOPS_FNAME' to the database."""
+def add_from_file(category_label, fname):
+    """Adds to the database names + surface forms of all category labels listed in the given file.
+    The file must contain the category lablel name + tab + semicolon-separated surface forms on each
+    line.
+    """
     dirname = os.path.dirname(os.path.abspath(__file__))
-    is_expanded = 'expanded' in STOPS_FNAME
-    with codecs.open(os.path.join(dirname, STOPS_FNAME), encoding='utf-8') as stops_file:
+    with codecs.open(os.path.join(dirname, fname), encoding='utf-8') as stops_file:
         for line in stops_file:
-            stop_name, stop_surface_forms = preprocess_stops_line(line, expanded_format=is_expanded)
-            for form in stop_surface_forms:
-                db_add('stop', stop_name, form)
+            if line.startswith('#'):
+                continue
+            val_name, val_surface_forms = preprocess_cl_line(line)
+            for form in val_surface_forms:
+                db_add(category_label, val_name, form)
 
-def stem():
-    """Stems words of all surface forms in the database."""
-    import autopath
-    from alex.utils.czech_stemmer import cz_stem
 
-    for _, vals in database.iteritems():
-        for value in vals.keys():
-            vals[value] = set([" ".join(cz_stem(word) for word in surface.split()) for surface in vals[value]])
+def add_stops():
+    """Add stop names from the stops file."""
+    add_from_file('stop', STOPS_FNAME)
+
+
+def add_cities():
+    """Add city names from the cities file."""
+    add_from_file('city', CITIES_FNAME)
+
+
+def save_c2v2f(file_name):
+    c2v2f = []
+    for k in database:
+        for v in database[k]:
+            for f in database[k][v]:
+                if re.search('\d', f):
+                    continue
+                c2v2f.append((k, v, f))
+
+    c2v2f.sort()
+
+    # save the database vocabulary - all the surface forms
+    with codecs.open(file_name, 'w', 'UTF-8') as f:
+        for x in c2v2f:
+            f.write(' => '.join(x))
+            f.write('\n')
 
 def save_surface_forms(file_name):
     surface_forms = []
     for k in database:
         for v in database[k]:
             for f in database[k][v]:
+                if re.search('\d', f):
+                    continue
                 surface_forms.append(f)
     surface_forms.sort()
 
@@ -302,6 +294,8 @@ def save_SRILM_classes(file_name):
     for k in database:
         for v in database[k]:
             for f in database[k][v]:
+                if re.search('\d', f):
+                    continue
                 surface_forms.append("CL_" + k.upper() + " " + f.upper())
     surface_forms.sort()
 
@@ -316,14 +310,9 @@ def save_SRILM_classes(file_name):
 ########################################################################
 add_time()
 add_stops()
+add_cities()
 
-if len(sys.argv) > 1 and sys.argv[1] == "dump":
+if "dump" in sys.argv or "--dump" in sys.argv:
+    save_c2v2f('database_c2v2f.txt')
     save_surface_forms('database_surface_forms.txt')
     save_SRILM_classes('database_SRILM_classes.txt')
-
-# WARNING: This is not the best place to do stemming.
-# we will not use stemming anymore because we have much better stop expansion
-#stem()
-#
-#if len(sys.argv) > 1 and sys.argv[1] == "dump":
-#    save_surface_forms('database_surface_forms_stemmed.txt')

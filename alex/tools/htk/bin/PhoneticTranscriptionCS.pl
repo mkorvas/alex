@@ -1,0 +1,1 @@
+../../kaldi/local/phonetic_transcription_cs.pl

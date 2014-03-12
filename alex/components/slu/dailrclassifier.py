@@ -13,6 +13,7 @@ import cPickle as pickle
 
 from collections import defaultdict
 from sklearn.linear_model import LogisticRegression
+from scipy.sparse import lil_matrix, coo_matrix
 
 from alex.components.asr.utterance import Utterance, UtteranceHyp, UtteranceNBList, UtteranceConfusionNetwork
 from alex.components.slu.exceptions import DAILRException
@@ -54,6 +55,16 @@ class Features(object):
                 fv[features_mapping[f]] = self.features[f]
 
         return fv
+
+    def get_feature_vector_lil(self, features_mapping):
+        data = []
+        rows = []
+        for f in self.features:
+            if f in features_mapping:
+                data.append(self.features[f])
+                rows.append(features_mapping[f])
+
+        return data, rows
 
     def prune(self, remove_features):
         """
@@ -130,18 +141,23 @@ class UtteranceFeatures(Features):
                     if i + k > len(utt):
                         break
 
-                    self.features[tuple(utt[i:i + k])] += 1.0
+                    # self.features[tuple(utt[i:i + k])] += 1.0
+                    self.features[tuple(utt[i:i + k])] = 1.0
 
         new_features = defaultdict(float)
         for f in self.features:
             if len(f) == 3:
-                new_features[(f[0], '*1', f[2])] += 1.0
+                # new_features[(f[0], '*1', f[2])] += 1.0
+                new_features[(f[0], '*1', f[2])] = 1.0
             if len(f) == 4:
-                new_features[(f[0], '*2', f[3])] += 1.0
+                # new_features[(f[0], '*2', f[3])] += 1.0
+                new_features[(f[0], '*2', f[3])] = 1.0
             if len(f) == 5:
-                new_features[(f[0], '*3', f[4])] += 1.0
+                # new_features[(f[0], '*3', f[4])] += 1.0
+                new_features[(f[0], '*3', f[4])] = 1.0
             if len(f) == 6:
-                new_features[(f[0], '*4', f[4])] += 1.0
+                # new_features[(f[0], '*4', f[4])] += 1.0
+                new_features[(f[0], '*4', f[4])] = 1.0
 
         for f in new_features:
             self.features[f] += new_features[f]
@@ -172,8 +188,8 @@ class DAILogRegClassifier(SLUInterface):
 
     def __init__(self, cldb, preprocessing, features_size=4, *args, **kwargs):
         self.features_size = features_size
-        self.preprocessing = preprocessing
         self.cldb = cldb
+        self.preprocessing = preprocessing
 
     def __repr__(self):
         r = "DAILogRegClassifier({cldb},{preprocessing},{features_size})"\
@@ -387,7 +403,7 @@ class DAILogRegClassifier(SLUInterface):
         else:
             raise DAILRException("Unsupported observations.")
 
-    def get_features_in_utterance(self, utterance, fvc):
+    def get_features_in_utterance(self, utterance, fvc, fvcs):
         """
         Returns features extracted from the utterance observation. At this moment, the function extracts N-grams of size
         self.feature_size. These N-grams are extracted from:
@@ -412,7 +428,7 @@ class DAILogRegClassifier(SLUInterface):
 
         return feat
 
-    def get_features_in_nblist(self, nblist, fvc):
+    def get_features_in_nblist(self, nblist, fvc, fvcs):
         #return self.get_features_in_utterance(nblist[0][1], fvc)
 
         feat = UtteranceFeatures(size=self.features_size)
@@ -421,7 +437,7 @@ class DAILogRegClassifier(SLUInterface):
         scale_p[0] = 1.0
 
         for i, (p, u) in enumerate(nblist):
-            feat.merge(self.get_features_in_utterance(u, fvc), weight=scale_p[i])
+            feat.merge(self.get_features_in_utterance(u, fvc, fvcs), weight=scale_p[i])
 
         nbl_global = dict([ ("nbl_prob_{i}".format(i=i), p) for i, (p, h) in enumerate(nblist)])
         nbl_global["nbl_len"] = len(nblist)
@@ -430,12 +446,12 @@ class DAILogRegClassifier(SLUInterface):
 
         return feat
 
-    def get_features_in_confnet(self, confnet, fvc):
+    def get_features_in_confnet(self, confnet, fvc, fvcs):
         nblist = confnet.get_utterance_nblist(n=CONFNET2NBLIST_EXPANSION_APPROX)
-        return self.get_features_in_nblist(nblist, fvc)
+        return self.get_features_in_nblist(nblist, fvc, fvcs)
 
-    @lru_cache(maxsize=1000)
-    def get_features(self, obs, fvc):
+    # @lru_cache(maxsize=1000)
+    def get_features(self, obs, fvc, fvcs):
         """
         Generate utterance features for a specific utterance given by utt_idx.
 
@@ -445,11 +461,11 @@ class DAILogRegClassifier(SLUInterface):
         """
 
         if isinstance(obs, Utterance):
-            return self.get_features_in_utterance(obs, fvc)
+            return self.get_features_in_utterance(obs, fvc, fvcs)
         elif isinstance(obs, UtteranceNBList):
-            return self.get_features_in_nblist(obs, fvc)
+            return self.get_features_in_nblist(obs, fvc, fvcs)
         elif isinstance(obs, UtteranceConfusionNetwork):
-            return self.get_features_in_confnet(obs, fvc)
+            return self.get_features_in_confnet(obs, fvc, fvcs)
         else:
             raise DAILRException("Unsupported observations.")
 
@@ -554,7 +570,7 @@ class DAILogRegClassifier(SLUInterface):
                             self.classifiers_cls[clser].append((None, None, None))
 
                         self.classifiers_features[clser].append(
-                            self.get_features(self.utterances[utt_idx], self.das_category_labels[utt_idx][i]))
+                            self.get_features(self.utterances[utt_idx], self.das_category_labels[utt_idx][i], self.das_category_labels[utt_idx]))
 
                         if verbose:
                             print "  @", clser, i, dai, f, v, c
@@ -571,7 +587,7 @@ class DAILogRegClassifier(SLUInterface):
                         self.classifiers_outputs[clser].append(0.0)
                         self.classifiers_cls[clser].append((None, None, None))
 
-                    self.classifiers_features[clser].append(self.get_features(self.utterances[utt_idx], (None, None, None)))
+                    self.classifiers_features[clser].append(self.get_features(self.utterances[utt_idx], (None, None, None), self.das_category_labels[utt_idx]))
 
                     if verbose:
                         print "  @", clser
@@ -607,7 +623,7 @@ class DAILogRegClassifier(SLUInterface):
 
             remove_features = []
             for f in features_counts:
-                if features_counts[f] < min_feature_count:
+                if features_counts[f] < min_feature_count + len(f):
                     remove_features.append(f)
 
             if verbose:
@@ -643,12 +659,15 @@ class DAILogRegClassifier(SLUInterface):
         for clser in sorted(self.classifiers):
             if verbose:
                 print "Training classifier: ", clser
+                print "  Matrix:            ", (len(self.classifiers_outputs[clser]), len(self.classifiers_features_list[clser]))
 
-            classifier_input = np.zeros((len(self.classifiers_outputs[clser]), len(self.classifiers_features_list[clser])))
+            classifier_input = lil_matrix((len(self.classifiers_outputs[clser]), len(self.classifiers_features_list[clser])))
             for i, feat in enumerate(self.classifiers_features[clser]):
-                classifier_input[i] = feat.get_feature_vector(self.classifiers_features_mapping[clser])
+                classifier_input.data[i], classifier_input.rows[i] = feat.get_feature_vector_lil(self.classifiers_features_mapping[clser])
 
-            lr = LogisticRegression('l2', C=inverse_regularisation, tol=1e-6)
+            classifier_input = classifier_input.tocsr()
+
+            lr = LogisticRegression('l2', dual=True, C=inverse_regularisation, tol=1e-6)
             lr.fit(classifier_input, self.classifiers_outputs[clser])
             self.trained_classifiers[clser] = lr
 
@@ -715,7 +734,7 @@ class DAILogRegClassifier(SLUInterface):
                     if self.parsed_classifiers[clser].value == cc:
                         #print clser, f, v, c
 
-                        classifiers_features = self.get_features(utterance, (f, v, cc))
+                        classifiers_features = self.get_features(utterance, (f, v, cc), utterance_fvcs)
                         classifiers_inputs = np.zeros((1, len(self.classifiers_features_mapping[clser])))
                         classifiers_inputs[0] = classifiers_features.get_feature_vector(self.classifiers_features_mapping[clser])
 
@@ -732,7 +751,7 @@ class DAILogRegClassifier(SLUInterface):
                         da_confnet.add(p[0][1], dai)
             else:
                 # process concrete classifiers
-                classifiers_features = self.get_features(utterance, (None, None, None))
+                classifiers_features = self.get_features(utterance, (None, None, None), utterance_fvcs)
                 classifiers_inputs = np.zeros((1, len(self.classifiers_features_mapping[clser])))
                 classifiers_inputs[0] = classifiers_features.get_feature_vector(self.classifiers_features_mapping[clser])
 

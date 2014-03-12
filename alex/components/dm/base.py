@@ -6,6 +6,75 @@ from collections import defaultdict
 from alex.components.dm.ontology import Ontology
 
 
+class DiscreteValue(object):
+    def __init__(self, values, name="", desc=""):
+        self.values = values
+        self.name = name
+        self.desc = desc
+
+    def __str__(self):
+        return unicode(self).encode('ascii', 'replace')
+
+    def __unicode__(self):
+        """Get the content of the dialogue state in a human readable form."""
+        pass
+
+    def prune(self, threshold=1e-3):
+        """Prune all values with probability less then a threshold."""
+
+        pass
+
+    def normalise(self):
+        """This function normalise the sum of all probabilities to 1.0"""
+
+        pass
+
+    def mph(self):
+        """The function returns the most probable value and its probability
+        in a tuple.
+        """
+
+        return None
+
+    def mpv(self):
+        """The function returns the most probable value.
+        """
+
+        return self.mph()[1]
+
+    def mpvp(self):
+        """The function returns the probability of the most probable value.
+        """
+
+        return self.mph()[0]
+
+    def tmphs(self):
+        """This function returns two most probable values and their probabilities.
+
+        The function returns a tuple consisting of two tuples (probability, value).
+        """
+
+        return None
+
+    def tmpvs(self):
+        """The function returns two most probable values.
+        """
+        (prob1, val1), (prob2, val2) = self.tmphs()
+
+        return (val1, val2)
+
+    def tmpvsp(self):
+        """The function returns probabilities of two most probable values in the slot.
+        """
+        (prob1, val1), (prob2, val2) = self.tmphs()
+
+        return (prob1, prob2)
+
+    def explain(self, full=False, linear_prob=False):
+        """This function prints the values and their probabilities for this node.
+        """
+        pass
+
 class DialogueState(object):
     """This is a trivial implementation of a dialogue state and its update.
 
@@ -53,21 +122,21 @@ class DialogueState(object):
 
         """
 
-    def get_requested_slots(self):
+    def get_slots_being_requested(self):
         """
         Returns all slots which are currently being requested by the user along
         with the correct value.
         """
         pass
 
-    def get_confirmed_slots(self):
+    def get_slots_being_confirmed(self):
         """
         Returns all slots which are currently being confirmed by the user along
         with the value being confirmed.
         """
         pass
 
-    def get_non_informed_slots(self):
+    def get_slots_being_noninformed(self):
         """
         Returns all slots provided by the user and the system has not informed
         about them yet along with the value of the slot.
@@ -155,5 +224,4 @@ class DialogueManager(object):
             f_token = urllib2.urlopen(token_url.format(curr_session))
             return f_token.read()
         else:
-            raise Exception(
-                "Please configure the 'token_url' DM parameter in config.")
+            raise Exception("Please configure the 'token_url' DM parameter in config.")

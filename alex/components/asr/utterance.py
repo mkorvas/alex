@@ -6,6 +6,7 @@
 from __future__ import unicode_literals
 
 import copy
+import re
 from collections import namedtuple
 from itertools import izip, product
 from operator import add, itemgetter, mul
@@ -114,10 +115,11 @@ def save_utterances(file_name, utt, encoding='UTF-8'):
     Saves a dictionary of utterances in the wave as key format into a file.
 
     :param file_name: name of the target file
-    :param utt: a dictionary with the utterances where the keys are the names of teh corresponding wave files
+    :param utt: a dictionary with the utterances where the keys are the names of the corresponding wave files
     :return: None
     """
     save_wavaskey(file_name, utt, encoding)
+
 
 class UtteranceException(SLUException):
     pass
@@ -188,7 +190,6 @@ class Utterance(object):
     def __getitem__(self, idx):
         return self._utterance[idx]
 
-
     def __iter__(self):
         for word in self._utterance:
             yield word
@@ -207,7 +208,7 @@ class Utterance(object):
 
     # TODO cache(1)
     def index(self, phrase):
-        """Returns the word index of the start of first occurence of `phrase'
+        """Returns the word index of the start of first occurrence of `phrase'
         within this utterance. If none is found, ValueError is raised.
 
         Arguments:
@@ -222,7 +223,7 @@ class Utterance(object):
         return index
 
     def find(self, phrase):
-        """Returns the word index of the start of first occurence of `phrase'
+        """Returns the word index of the start of first occurrence of `phrase'
         within this utterance. If none is found, returns -1.
 
         Arguments:
@@ -259,7 +260,7 @@ class Utterance(object):
             if self._utterance[match_idx] == initial:
                 # Check the subsequent words too.
                 for phrase_idx in xrange(1, len(phrase)):
-                    if self._utterance[match_idx + phrase_idx] !=\
+                    if self._utterance[match_idx + phrase_idx] != \
                             phrase[phrase_idx]:
                         break
                 else:
@@ -305,6 +306,24 @@ class Utterance(object):
 
         return (ret_utt, orig_pos) if return_startidx else ret_utt
 
+    def replace_all(self, orig, replacement):
+        """Replace all occurrences of the given words with the replacement.
+        Only replaces at word boundaries.
+
+        :param orig: the original string to be replaced (as string or list of words)
+        :param replacement: the replacement (as string or list of words)
+        :rtype: Utterance
+        """
+        if self.find(orig) == -1:
+            return self
+        if isinstance(orig, list):
+            orig = u' '.join(orig)
+        if isinstance(replacement, list):
+            replacement = u' '.join(replacement)
+        # FJ (this does not work well): using '\b' to ensure we are replacing only at whitespace
+        # FJ a changed it
+        return Utterance(re.sub('(^|\s)' + re.escape(orig) + '($|\s)', ' '+replacement+' ', unicode(self)))
+
     def replace2(self, start, end, replacement):
         """
         Replace the words from start to end with the replacement.
@@ -317,7 +336,7 @@ class Utterance(object):
 
         ret_utt = Utterance('')
         if not isinstance(replacement, list):
-            replacement = [replacement,]
+            replacement = [replacement, ]
 
         ret_utt.utterance = self._utterance[:start] + replacement + self._utterance[end:]
         ret_utt._wordset = set(ret_utt._utterance)
@@ -368,7 +387,7 @@ class Utterance(object):
 # TODO Extend to AbstractedLattice.
 # TODO Write tests.
 class AbstractedUtterance(Utterance, Abstracted):
-    other_val = ('[OTHER]', )
+    other_val = ('[OTHER]',)
 
     def __init__(self, surface):
         self._abstr_idxs = list()  # sorted in an increasing order
@@ -397,7 +416,7 @@ class AbstractedUtterance(Utterance, Abstracted):
         try:
             return hash((tuple(self._utterance), tuple(self._abstr_idxs)))
         except AttributeError:
-            return hash((('_other_', ), tuple()))
+            return hash((('_other_',), tuple()))
 
     @classmethod
     def from_utterance(cls, utterance):
@@ -408,14 +427,14 @@ class AbstractedUtterance(Utterance, Abstracted):
 
     @classmethod
     def make_other(cls, type_):
-        return (u'{t}-OTHER'.format(t=type_[0]), )
+        return (u'{t}-OTHER'.format(t=type_[0]),)
 
     def join_typeval(self, type_, val):
-        return (self.splitter.join((type_[0], ' '.join(val))), )
+        return (self.splitter.join((type_[0], ' '.join(val))),)
 
     def iter_typeval(self):
         for idx in self._abstr_idxs:
-            yield (self._utterance[idx], )
+            yield (self._utterance[idx],)
 
     def iter_triples(self):
         for combined_el, in self.iter_typeval():
@@ -427,7 +446,7 @@ class AbstractedUtterance(Utterance, Abstracted):
                 type_ = split[0] if combined_el else ''
             # XXX Change the order of return values to combined_el, type_,
             # value.
-            yield (combined_el, ), tuple(value.split(' ')), (type_, )
+            yield (combined_el,), tuple(value.split(' ')), (type_,)
 
     def phrase2category_label(self, phrase, catlab):
         """Replaces the phrase given by `phrase' by a new phrase, given by
@@ -436,7 +455,7 @@ class AbstractedUtterance(Utterance, Abstracted):
         """
         combined_el = self.splitter.join((' '.join(catlab),
                                           ' '.join(phrase)))
-        return self.replace(phrase, (combined_el, ))
+        return self.replace(phrase, (combined_el,))
 
     def replace(self, orig, replacement):
         """
@@ -529,7 +548,7 @@ class UtteranceFeatures(Features):
         elif self.type == 'ngram':
             # Compute shorter n-grams.
             for word in utterance:
-                self.features[(word, )] += 1.
+                self.features[(word,)] += 1.
             if self.size >= 2:
                 for ngram in utterance.iter_ngrams(
                         2, with_boundaries=with_boundaries):
@@ -592,7 +611,7 @@ class UtteranceNBList(ASRHypothesis, NBList):
                 most probable to the least probable ones
 
     """
-    def __init__(self, rep = None):
+    def __init__(self, rep=None):
         NBList.__init__(self)
 
         if rep:
@@ -616,7 +635,7 @@ class UtteranceNBList(ASRHypothesis, NBList):
         return self.get_best()
 
     def get_best(self):
-        if self.n_best[0][1] == '_other_':
+        if self.n_best[0][1] == '_other_' and len(self.n_best) > 1:
             return self.n_best[1][1]
         return self.n_best[0][1]
 
@@ -708,7 +727,7 @@ class UtteranceConfusionNetwork(ASRHypothesis, Abstracted):
     fact) with easy-to-read indexing. namedtuple might be the best choice.
 
     """
-    other_val = ('[OTHER]', )
+    other_val = ('[OTHER]',)
     repr_spec_chars = '():,;|[]"\\'
     repr_escer = Escaper(repr_spec_chars)
     str_escer = Escaper('"\\')  # Python string literal escaper
@@ -935,18 +954,18 @@ class UtteranceConfusionNetwork(ASRHypothesis, Abstracted):
     # Abstracted implementations.
     @classmethod
     def make_other(cls, type_):
-        return (u'{t}-OTHER'.format(t=type_[0]), )
+        return (u'{t}-OTHER'.format(t=type_[0]),)
 
     def iter_typeval(self):
         for index in self._abstr_idxs:
             if index.is_long_link:
                 yield (self._long_links[index.word_idx][index.alt_idx]
-                       .hyp[1][0], )
+                       .hyp[1][0],)
             else:
-                yield (self._cn[index.word_idx][index.alt_idx][1], )
+                yield (self._cn[index.word_idx][index.alt_idx][1],)
 
     def join_typeval(self, type_, val):
-        return (self.splitter.join((type_[0], ' '.join(val))), )
+        return (self.splitter.join((type_[0], ' '.join(val))),)
 
     def replace_typeval(self, combined, replacement):
         replaced, old_idxs, new_idxs = self._replace(
@@ -967,7 +986,7 @@ class UtteranceConfusionNetwork(ASRHypothesis, Abstracted):
                 type_ = split[0] if combined_el else ''
             # XXX Change the order of return values to combined_el, type_,
             # value.
-            yield (combined_el, ), tuple(value.split(' ')), (type_, )
+            yield (combined_el,), tuple(value.split(' ')), (type_,)
 
     # Methods to support preprocessing.
     def lower(self):
@@ -994,7 +1013,7 @@ class UtteranceConfusionNetwork(ASRHypothesis, Abstracted):
         """
         combined_el = self.splitter.join((' '.join(catlab), ' '.join(phrase)))
         replaced, old_idxs, new_idxs = self._replace(
-            phrase, (combined_el, ), keep=True)
+            phrase, (combined_el,), keep=True)
         if old_idxs:
             replaced._abstr_idxs = [idx for idx in replaced._abstr_idxs
                                     if idx._replace(link_widx=0)
@@ -1691,7 +1710,7 @@ class UtteranceConfusionNetwork(ASRHypothesis, Abstracted):
         # Find n-gram start indices that shall be iterated over.
         if start is not None:
             if start < len(self._cn):
-                start_iter = (start, )
+                start_iter = (start,)
             elif start == len(self._cn) and with_boundaries:
                 start_iter = tuple()
             else:
@@ -1831,7 +1850,7 @@ class UtteranceConfusionNetworkFeatures(Features):
             for alts in confnet:
                 for prob, word in alts:
                     if word:  # skip empty words
-                        self.features[(word, )] += prob
+                        self.features[(word,)] += prob
             if self.size >= 2:
                 for prob, ngram in confnet.iter_ngrams(
                         2, with_boundaries=True):

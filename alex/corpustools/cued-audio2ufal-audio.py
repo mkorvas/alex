@@ -41,7 +41,7 @@ if __name__ == "__main__":
     import autopath
 
 from alex.corpustools.cued import find_wavs
-from alex.corpustools.text_norm_en import exclude, exclude_by_dict, normalise_text
+from alex.corpustools.text_norm_en import exclude_asr, exclude_by_dict, normalise_text
 
 
 def save_transcription(trs_fname, trs):
@@ -78,10 +78,27 @@ def extract_wavs_trns(dirname, sess_fname, outdir, wav_mapping,
         doc = ElementTree.parse(sess_fname)
     except IOError as error:
         if verbose:
-            print '!!! Could not parse "{fname}": {msg!s}.'\
-                .format(fname=sess_fname, msg=error)
+            print '!!! Could not parse "{fname}": {msg!s}.'.format(fname=sess_fname, msg=error)
             return 0, 0, 0, 0
     uturns = doc.findall(".//userturn")
+
+    annotations = doc.findall('.//annotation')
+    print "# annotations: ", len(annotations)
+    if len(annotations) > 1:
+        # FIXME: This is bad! We waste about 1/3 of all data from CF. However, it is not possible to deduce
+        # what transcription to use.
+        print "Transcription was rejected as we have more then two transcriptions and " \
+              "we cannot decide which one is better."
+        return 0, 0, 0, 0
+    for a in annotations:
+        r = False
+        if 'worker_id' in a.attrib and a.attrib['worker_id'] == '19113916':
+            r = True
+
+        if r:
+            print "Transcription was rejected because of unreliable annotator."
+            return 0, 0, 0, 0
+
 
     size = 0
     n_overwrites = 0
@@ -93,9 +110,20 @@ def extract_wavs_trns(dirname, sess_fname, outdir, wav_mapping,
         rec = uturn.find("rec")
         trs = uturn.find("transcription")
         if trs is None:
-            if rec is not None:
-                n_missing_trs += 1
-            continue
+            # this may be CF style transcription
+
+            trs2 = uturn.find("transcriptions")
+            if trs2 is not None:
+                trs3 = trs2.findall("transcription")
+
+                if trs3 is None:
+                    if rec is not None:
+                        n_missing_trs += 1
+                    continue
+                else:
+                    trs = trs3[-1].text
+            else:
+                continue
         else:
             trs = trs.text
 
@@ -115,7 +143,7 @@ def extract_wavs_trns(dirname, sess_fname, outdir, wav_mapping,
                 term_width = getTerminalSize()[1] or 80
                 print '-' * term_width
                 print "# f:", wav_basename
-                print "orig transcription:", trs.upper()
+                print "orig transcription:", trs.upper().strip()
 
             trs = normalise_text(trs)
             
@@ -125,7 +153,7 @@ def extract_wavs_trns(dirname, sess_fname, outdir, wav_mapping,
             if known_words is not None:
                 excluded = exclude_by_dict(trs, known_words)
             else:
-                excluded = exclude(trs)
+                excluded = exclude_asr(trs)
             if excluded:
                 print "... excluded"
                 continue
@@ -268,10 +296,10 @@ def convert(args):
     for prefix, call_log in sess_fnames.iteritems():
         if verbose:
             print "Processing call log dir:", prefix
+            print " session file name:     ", call_log
 
         cursize, cur_n_overwrites, cur_n_missing_wav, cur_n_missing_trs = \
-            extract_wavs_trns(
-                prefix, call_log, outdir, wav_mapping, known_words, verbose)
+            extract_wavs_trns(prefix, call_log, outdir, wav_mapping, known_words, verbose)
         size += cursize
         n_overwrites += cur_n_overwrites
         n_missing_wav += cur_n_missing_wav

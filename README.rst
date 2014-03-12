@@ -1,9 +1,11 @@
-Introduction into Alex Dialogue Systems Framework
+.. image:: alex/doc/alex-logo.png
+    :alt: Alex logo
+Alex Dialogue Systems Framework
 =================================================
 
 Description
 -----------------
-The Alex Dialogue Systems Framework is named after the famous parrot Alex: http://en.wikipedia.org/wiki/Alex_(parrot)
+The Alex Dialogue Systems Framework is named after `the famous parrot Alex <http://en.wikipedia.org/wiki/Alex_(parrot)>`_.
 
 This framework is being developed by the dialogue systems group at UFAL - http://ufal.mff.cuni.cz/ -
 the Institute of Formal and Applied Linguistics, Faculty of Mathematics and Physics, Charles University in Prague,
@@ -19,24 +21,27 @@ The main goals are:
 Implemented features:
 
 - VOIP using ``PJSIP 2.1`` with some modifications
-- ASR using ``OpenJulius`` and ``GoogleASR``
-- VAD using Gaussian Mixure Models and Feed-Forward Neural Networks
-- SLU using a set of logistic regression classifiers for dialogue act items
-- DM using deterministic one best dialogue state tracking and handcrafted policies
+- ASR using ``OpenJulius``, ``GoogleASR``  or ``KALDI``
+- VAD using Gaussian Mixure Models or Feed-Forward Neural Networks
+- SLU using a set of logistic regression classifiers for detecting dialogue acts
+- DM using probablistic discriminative dialogue state tracking and handcrafted policies
 - NLG using template based generation possibly with efficient inflection into the correct surface form for
   morphologically rich languages
 - TTS using ``flite``, ``VoiceRSS`` and ``SpeechTech``
 - evaluation of dialogue systems using Amazon Mechanical Turk crowdsourcing platform
-- transcription and semantic annotation of collected audio using Crowdflower crowdsourcing platform
-- building acoustic models using the HTK and KALDI
+- building acoustic models using the HTK and KALDI toolkits
 - example dialogue domains:
 
   - PTIcs: :doc:`alex.applications.PublicTransportInfoCS.README`
 
+Features implemented in different repositories:
+
+- transcription and semantic annotation of collected phone calls using the Crowdflower crowdsourcing platform: https://github.com/UFAL-DSG/django-crowdflower-annotations
+
 Missing features:
 
-- there is no user simulator for any of the supported domains
-- as a result there is no trainable dialogue policies
+- no user simulator for any of the supported domains
+- no trainable dialogue policies
 
 Installation
 ------------
@@ -50,7 +55,7 @@ is for every person different!
 
 Development process
 -------------------
-Anyone can contribute to the project as long as he or she agrees to the publishing his contributions under the APACHE 2.0
+Anyone can contribute to the project as long as he or she agrees to publish the contributions under the APACHE 2.0
 license.
 
 If you are a core member of the development team, please do not make changes directly in the master branch. Please,
@@ -75,14 +80,14 @@ changes in the topic branch. Then follow the instructions above, that is:
 Documentation
 -------------
 The documentation for this project is generated using Sphinx and its ``autodoc`` extension. Please document
-all your code as much as possible using the conventions which can parsed by Sphinx. Also provide README style
-documentation describing the complete packages, applications, or preparation of data and models. This documentation can
+all your code as much as possible using the conventions which can be parsed by Sphinx. Also provide README style
+documentation describing the complete packages, applications, or preparation of data and models. The documentation can
 be and should be placed near the code and/or application to which it is the most
-relevant. For formatting the text, use reStructured (reSt) *wiki like* syntax. The advantage of reSt is that it fairly
-readable in source format and it can nicely rendered into HTML or PDF using Sphinx. Documents with the ``rst`` extension
+relevant. For formatting the text, use reStructured (reSt) *wiki like* syntax. The advantage of reSt is that it is fairly
+readable in source format and it can be nicely rendered into HTML or PDF using Sphinx. Documents with the ``rst`` extension
 are automatically detected, included into the documentation, and an index page for these documents is created.
 
-Each document should start with every descriptive title, e.g.:
+Each document should start with a every descriptive title, e.g.:
 
 ::
 

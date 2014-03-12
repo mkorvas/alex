@@ -11,6 +11,11 @@ import re
 
 __all__ = ['normalise_text', 'exclude', 'exclude_by_dict']
 
+_nonspeech_events = ['_SIL_', '_INHALE_', '_LAUGH_', '_EHM_HMM_', '_NOISE_', '_EXCLUDE_',]
+
+for idx, ne in enumerate(_nonspeech_events):
+    _nonspeech_events[idx] = (re.compile(r'((\b|\s){pat}(\b|\s))+'.format(pat=ne)), ' '+ne+' ')
+
 # nonspeech event transcriptions {{{
 _nonspeech_map = {
     '_SIL_': (
@@ -20,6 +25,7 @@ _nonspeech_map = {
         '<SILENCE>',
     ),
     '_INHALE_': (
+        '(INHALE)',
         '(BREATH)',
         '(BREATHING)',
         '(SNIFFING)',
@@ -31,6 +37,7 @@ _nonspeech_map = {
         '<LAUGH>',
     ),
     '_EHM_HMM_': (
+        '(EHM_HMM)',
         '(HESITATION)',
         '(HUM)',
         '<COUGH>',
@@ -41,6 +48,8 @@ _nonspeech_map = {
         '<EHM>',
     ),
     '_NOISE_': (
+        '(NOISE)',
+        '(NOISES)',
         '(COUCHING)',
         '(COUGH)',
         '(COUGHING)',
@@ -63,6 +72,13 @@ _nonspeech_map = {
         '(SQUEAK)',
         '(TVNOISE)',
         '<NOISE>',
+    ),
+    '_EXCLUDE_': (
+        '(EXCLUDE)',
+        '(PERSONAL)',
+        '(VULGARISM)',
+        '(UNINTELLIGIBLE)',
+        '(UNINT)',
     )
 }
 #}}}
@@ -72,130 +88,178 @@ for uscored, forms in _nonspeech_map.iteritems():
         _nonspeech_trl[form] = uscored
 
 # substitutions {{{
-_subst = [('JESLTI', 'JESTLI'),
-          ('NMŮŽU', 'NEMŮŽU'),
-          ('_NOISE_KAM', '_NOISE_ KAM'),
-          ('(NOISE)KAM', '_NOISE_ KAM'),
+_subst = [
+          ('UNINTELLIGIBLE', '_EXCLUDE_'),
+          ('UNINT', '_EXCLUDE_'),
           ('6E', ' '),
-          ('OKEY', 'OK'),
-          ('OKAY', 'OK'),
-          ('ÁHOJ', 'AHOJ'),
-          ('ÁNO', 'ANO'),
-          ('BARANDOV', 'BARRANDOV'),
-          ('ZEA', 'ZE'),
-          ('LITŇANSKÁ', 'LETŇANSKÁ'),
-          ('ANÓ', 'ANO'),
-          ('NEVIM', 'NEVÍM'),
-          ('DEKUJI', 'DĚKUJI'),
-          ('SCHLEDANOU', 'SHLEDANOU'),
-          ('NASHLEDANOU', 'NA SHLEDANOU'),
-          ('NEROZUMIM', 'NEROZUMÍM'),
+          ('AČAKOLIV', 'AČKOLIV'),
           ('ADRESTÁ', 'ADRESÁT'),
-          ('KAŽDYM', 'KAŽDÝM'),
+          ('ÁHOJ', 'AHOJ'),
+          ('AKDEMII', 'AKADEMII'),
+          ('AKORAT', 'AKORÁT'),
           ('ALIKOVANÉ', 'APLIKOVANÉ'),
           ('AMERIČEN', 'AMERIČAN'),
+          ('AMFÓROVÁ', 'AMFOROVÁ'),
+          ('ÁNO', 'ANO'),
+          ('ANÓ', 'ANO'),
+          ('AJPÍ', 'AJ PÍ'),
           ('APLIÓNU', 'AMPLIÓNU'),
           ('AUSTÁLIE', 'AUSTRÁLIE'),
-          ('AČAKOLIV', 'AČKOLIV'),
+          ('BARANDOV', 'BARRANDOV'),
+          ('BĚŽÉ', 'BĚŽÍ'),
           ('BRATISLABY', 'BRATISLAVY'),
+          ('BRNÉ', 'BRNĚ'),
+          ('ČAPLINOVA', 'CHAPLINOVA'),
+          ('CHAPLINO', 'CHAPLINOVO'),
+          ('ČAPLINOVO', 'CHAPLINOVO'),
+          ('ČEPLINOVO', 'CHAPLINOVO'),
+          ('ČEPLINOVĚ', 'CHAPLINOVĚ'),
           ('CHCTE', 'CHCETE'),
           ('DEFICID', 'DEFICIT'),
-          ('DOMÁCÍCCH', 'DOMÁCÍCH'),
+          ('DEKUJI', 'DĚKUJI'),
+          ('DĚLALÁ', 'DĚLALA'),
           ('DĚNNĚ', 'DENNĚ'),
+          ('DENNNĚ', 'DENNĚ'),
+          ('DIVADLÓ', 'DIVADLO'),
+          ('DOMÁCÍCCH', 'DOMÁCÍCH'),
+          ('DÓ', 'DO'),
+          ('DVACETDVOJKOU', 'DVACET DVOJKOU'),
           ('EXPERIMENTYY', 'EXPERIMENTY'),
+          ('EŠTĚ', 'JEŠTĚ'),
           ('FYZIKOLOGIE', 'FYZIOLOGIE'),
           ('GORADŽE', 'GORAŽDE'),
+          ('HALO', 'HALÓ'),
+          ('HELICHOVA', 'HELLICHOVA'),
+          ('HLAVNIM', 'HLAVNÍM'),
           ('HVĚZDÁ', 'HVĚZDNÁ'),
           ('INICIATIVNU', 'INICIATIVU'),
+          ('ÍPÉPAVLOVA', 'I P PAVLOVA'),
+          ('Í PÉ PAVLOVA', 'I P PAVLOVA'),
+          ('ÍPÉ PAVLOVA', 'I P PAVLOVA'),
+          ('ÍPÉ PA PAVLOVA', 'I P PAVLOVA'),
+          ('Í PÉ PAVLOVU', 'I P PAVLOVU'),
+          ('ÍPÉ PAVLOVU', 'I P PAVLOVU'),
+          ('Í PÉ PAVLOVY', 'I P PAVLOVY'),
+          ('ÍPÉ PAVLOVY', 'I P PAVLOVY'),
+          ('ÍPÉ', 'I P'),
+          ('PÍPÉ', 'I P'),
           ('ISNTITUCE', 'INSTITUCE'),
           ('ISPEKCI', 'INSPEKCI'),
-          ('JÍDZNÍ', 'JÍZDNÍ'),
           ('JĚ', 'JE'),
+          ('JESLTI', 'JESTLI'),
+          ('JÉT', 'JET'),
+          ('JINONICKA', 'JINONICKÁ'),
+          ('JÍDZNÍ', 'JÍZDNÍ'),
           ('KABLOVNY', 'KABELOVNY'),
+          ('KAŽDYM', 'KAŽDÝM'),
           ('KMOTŘEM', 'KMOTREM'),
-          ('KTOMU', 'K TOMU'),
+          ('KOCOR', 'KOCOUR'),
+          ('KONCEKRT', 'KONCERT'),
           ('KŘESŤANSÝCH', 'KŘESŤANSKÝCH'),
+          ('KREVNÍCHH', 'KREVNÍCH'),
+          ('KTOMU', 'K TOMU'),
+          ('KUBÁŇSKÉ', 'KUBÁNSKÉ'),
           ('LECCOST', 'LECCOS'),
-          ('LITERTŮŘE', 'LITERATŮŘE'),
+          ('LETŇÁN', 'LETŇAN'),
           ('LÍDÉ', 'LIDÉ'),
+          ('LITERTŮŘE', 'LITERATŮŘE'),
+          ('LITŇANSKÁ', 'LETŇANSKÁ'),
           ('MAJETKOVÝVH', 'MAJETKOVÝVCH'),
+          ('MALOSTARNSKÉHO', 'MALOSTRANSKÉHO'),
           ('MEZIMÁRODNÍHO', 'MEZINÁRODNÍHO'),
-          ('MOŽNOT', 'MOŽNOST'),
           ('MÍSTOPŘESEDA', 'MÍSTOPŘEDSEDA'),
+          ('MOŽNOT', 'MOŽNOST'),
+          ('NÁHLÉDNUTÍ', 'NAHLÉDNUTÍ'),
           ('NAJASNÁ', 'NEJASNÁ'),
+          ('NÁ', 'NA'),
+          ('NÁDRAŽI', 'NÁDRAŽÍ'),
           ('NANAZAT', 'NAMAZAT'),
+          ('NASCHLEDANOU', 'NA SHLEDANOU'),
+          ('NASHLEDANOU', 'NA SHLEDANOU'),
           ('NEJČASĚJŠÍMI', 'NEJČASTĚJŠÍMI'),
+          ('NĚKDĚ', 'NĚKDE'),
+          ('NĚKDZ', 'NĚKDY'),
+          ('NĚMECKKOU', 'NĚMECKOU'),
           ('NENATCHL', 'NENADCHL'),
           ('NEPRVE', 'NEJPRVE'),
+          ('NEROZUMIM', 'NEROZUMÍM'),
           ('NESLYŠIM', 'NESLYŠÍM'),
+          ('NEVIM', 'NEVÍM'),
           ('NEVYDŽEL', 'NEVYDRŽEL'),
-          ('NÁHLÉDNUTÍ', 'NAHLÉDNUTÍ'),
-          ('NĚMECKKOU', 'NĚMECKOU'),
+          ('NIČIM', 'NIČÍM'),
+          ('NMŮŽU', 'NEMŮŽU'),
+          ('ŇÚTNOVA', 'NEWTONOVA'),
+          ('ŇUTNOVÁ', 'NEWTONOVÁ'),
+          ('ŇÚTNOVÁ', 'NEWTONOVÁ'),
+          ('ŇUTNA', 'NEWTONA'),
+          ('_NOISE_KAM', '_NOISE_ KAM'),
+          ('(NOISE)KAM', '_NOISE_ KAM'),
+          ('_NOISE_VONO', '_NOISE_ VONO'),
+          ('(NOISE)VONO', '_NOISE_ VONO'),
           ('ODPOVĚDOSTI', 'ODPOVĚDNOSTI'),
+          ('OKAY', 'OK'),
+          ('OKEY', 'OK'),
           ('OPOMENTÝCH', 'OPOMENUTÝCH'),
           ('PACHATÉLŮ', 'PACHATELŮ'),
+          ('PALMOVKÁ', 'PALMOVKA'),
           ('POCHATELŮ', 'PACHATELŮ'),
           ('PODIKATELSKÝ', 'PODNIKATELSKÝ'),
-          ('PROTESTNANTY', 'PROTESTANTY'),
+          ('POJĎMĚ', 'POJĎME'),
+          ('POSLÚCHEJ', 'POSLŮCHEJ'),
           ('PŘEVOLEBNÍ', 'PŘEDVOLEBNÍ'),
           ('PŘEVŠÍM', 'PŘEDVŠÍM'),
           ('PŘÍJMACÍ', 'PŘÍJÍMACÍ'),
           ('PŘÍJMANÉ', 'PŘÍJÍMANÉ'),
           ('PŘÍRUSTEK', 'PŘÍRŮSTEK'),
+          ('PRAZÉ', 'PRAZE'),
+          ('PROSIM', 'PROSÍM'),
+          ('PROTESTNANTY', 'PROTESTANTY'),
           ('RADSOT', 'RADOST'),
           ('ROZHDODLA', 'ROZHODLA'),
           ('ROZSÁHLA', 'ROZSÁHLÁ'),
+          ('S FLORENCE', 'Z FLORENCE'),
           ('SCHÁLIT', 'SCHVÁLIT'),
+          ('SCHLEDANOU', 'SHLEDANOU'),
+          ('ŠIKOVNNÝ', 'ŠIKOVNÝ'),
           ('SKOROVAL', 'SKÓROVAL'),
           ('SLOVENSŠTÍ', 'SLOVENŠTÍ'),
+          ('SLYŠEEL', 'SLYŠEL'),
+          ('SPOJEENÍ', 'SPOJENÍ'),
           ('SPOLECHEMIE', 'SPOLOCHEMIE'),
           ('SPORTNOVNÍMI', 'SPORTOVNÍMI'),
+          ('SPUTIT', 'SPUSTIT'),
+          ('ŠŠTVRT', 'ŠTVRT'),
+          ('ŠTROSMAJEROVO', 'STROSSMAYEROVO'),
           ('STANDARTNĚ', 'STANDARDNĚ'),
           ('STEREOPTYPY', 'STEREOTYPY'),
+          ('TAAKŽE', 'TAKŽE'),
           ('TAPATOVÝMI', 'TAPETOVÝMI'),
+          ('TROHU', 'TROCHU'),
           ('TVDÝ', 'TVRDÝ'),
           ('UPEVIL', 'UPEVNIL'),
+          ('ÚŘÁD', 'ÚŘAD'),
           ('UVĚĎMĚ', 'UVEĎMĚ'),
+          ('VALDŠTEJSNKÁ', 'VALDŠTEJNSKÁ'),
+          ('VŠAL', 'VŠAK'),
+          ('VŠECHNOO', 'VŠECHNO'),
+          ('VÝBEHU', 'VÝBĚHU'),
           ('VYPOŘÁDNÍ', 'VYPOŘÁDÁNÍ'),
           ('VYSOUPENÍ', 'VYSTOUPENÍ'),
+          ('VYZVEDNÁVAT', 'VYZVEDÁVAT'),
+          ('VZÁDLENOSTI', 'VZDÁLENOSTI'),
           ('VZDDĚLÁNÍ', 'VZDĚLÁNÍ'),
           ('VZTOUPÍ', 'VSTOUPÍ'),
-          ('VZÁDLENOSTI', 'VZDÁLENOSTI'),
-          ('VÝBEHU', 'VÝBĚHU'),
-          ('VŠAL', 'VŠAK'),
           ('ZAJÁJENÍ', 'ZAHÁJENÍ'),
           ('ZALEŽÍ', 'ZÁLEŽÍ'),
           ('ZAVEDNÍ', 'ZAVEDENÍ'),
+          ('ZASTÁVKŮ', 'ZASTÁVKU'),
           ('ZDRAVOTÍ', 'ZDRAVOTNÍ'),
+          ('ZEA', 'ZE'),
           ('ZHODNOŤTĚ', 'ZHODNOŤTE'),
           ('ZPRACOVNÁNÍ', 'ZPRACOVÁNÍ'),
           ('ZROVNOPRÁVĚNÍ', 'ZROVNOPRÁVNĚNÍ'),
           ('ZTRÁŽNÍKY', 'STRÁŽNÍKY'),
           ('ZVLÁŠTÍ', 'ZVLÁŠTNÍ'),
-          ('ÚŘÁD', 'ÚŘAD'),
-          ('AKDEMII', 'AKADEMII'),
-          ('AKORAT', 'AKORÁT'),
-          ('BĚŽÉ', 'BĚŽÍ'),
-          ('CHCTE', 'CHCETE'),
-          ('DENNNĚ', 'DENNĚ'),
-          ('DĚLALÁ', 'DĚLALA'),
-          ('KOCOR', 'KOCOUR'),
-          ('KONCEKRT', 'KONCERT'),
-          ('KREVNÍCHH', 'KREVNÍCH'),
-          ('NĚKDZ', 'NĚKDY'),
-          ('NĚKDĚ', 'NĚKDE'),
-          ('POJĎMĚ', 'POJĎME'),
-          ('POSLÚCHEJ', 'POSLŮCHEJ'),
-          ('SLYŠEEL', 'SLYŠEL'),
-          ('SPOJEENÍ', 'SPOJENÍ'),
-          ('SPUTIT', 'SPUSTIT'),
-          ('TAAKŽE', 'TAKŽE'),
-          ('TROHU', 'TROCHU'),
-          ('VALDŠTEJSNKÁ', 'VALDŠTEJNSKÁ'),
-          ('VYZVEDNÁVAT', 'VYZVEDÁVAT'),
-          ('VŠECHNOO', 'VŠECHNO'),
-          ('ŠIKOVNNÝ', 'ŠIKOVNÝ'),
-          ('ŠŠTVRT', 'ŠTVRT'),
           ]
 #}}}
 for idx, tup in enumerate(_subst):
@@ -252,6 +316,10 @@ def normalise_text(text):
             text = text.replace(parenized, uscored)
         text = _more_spaces.sub(' ', text.strip())
 
+    for pat, sub in _nonspeech_events:
+        text = pat.sub(sub, text)
+    text = _more_spaces.sub(' ', text).strip()
+
     for char in '^':
         text = text.replace(char, '')
 
@@ -259,15 +327,15 @@ def normalise_text(text):
 #}}}
 
 
-def exclude(text):
+def exclude_asr(text):
     """
-    Determines whether `text' is not good enough and should be excluded. "Good
-    enough" is defined as containing none of `_excluded_characters' and being
-    longer than one word.
+    This function is used for determining whether the transcription can be used for training ASR.
 
+    Determines whether `text' is not good enough and should be excluded.
+    "Good enough" is defined as containing none of `_excluded_characters' and being
+    longer than one word.
     """
-#{{{
-    if text in ['_NOISE_', '_EHM_HMM_', '_SIL_', '_INHALE_', '_LAUGH_']:
+    if text in ['_NOISE_', '_EHM_HMM_', '_INHALE_', '_LAUGH_']:
         return False
 
     for char in _excluded_characters:
@@ -277,8 +345,30 @@ def exclude(text):
         return True
 
     return False
-#}}}
 
+def exclude_lm(text):
+    """
+    This function is used for determining whether the transcription can be used for Language Modeling.
+
+    Determines whether `text' is not good enough and should be excluded.
+    "Good enough" is defined as containing none of `_excluded_characters' and being
+    longer than one word.
+    """
+
+    if text.find('_EXCLUDE_') >= 0:
+        return True
+
+    for char in _excluded_characters:
+        if char in text  and char not in ['_']:
+            return True
+
+    return False
+
+def exclude_slu(text):
+    """
+    This function is used for determining whether the transcription can be used for training Spoken Language Understanding.
+    """
+    return exclude_lm(text)
 
 def exclude_by_dict(text, known_words):
     """

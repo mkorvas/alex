@@ -84,16 +84,16 @@ def file_unlock(lock_file):
     lock_file.close()
 
 def async(func):
-    """4
+    """
         A function decorator intended to make "func" run in a separate thread (asynchronously).
         Returns the created Thread object
 
         E.g.:
-        @run_async
+        @async
         def task1():
             do_something
 
-        @run_async
+        @async
         def task2():
             do_something_too
 
@@ -112,6 +112,22 @@ def async(func):
 
     return async_func
 
+def etime(name="Time",min_t=0.300):
+    """This decorator measures the execution time of the decorated function.
+    """
+    def decorator(user_function):
+        @functools.wraps(user_function)
+        def wrapper(*args, **kw):
+            s = (time.time(), time.clock())
+            r = user_function(*args, **kw)
+            d = (time.time() - s[0], time.clock() - s[1])
+            if d[0] > min_t:
+                print "EXEC Time {name} t = {t:0.4f} c = {c:0.4f}\n".format(name=name, t=d[0], c=d[1])
+            return r
+
+        return wrapper
+
+    return decorator
 
 class InstanceID(object):
     """
@@ -131,9 +147,7 @@ class InstanceID(object):
 
 class SystemLogger(object):
     """
-    This is a multiprocessing-safe logger.  It should be used by all components
-    in Alex.
-
+    This is a multiprocessing-safe logger.  It should be used by all components in Alex.
     """
 
     lock = multiprocessing.RLock()
@@ -147,8 +161,7 @@ class SystemLogger(object):
         'ERROR':           60,
     }
 
-    def __init__(self, output_dir, stdout_log_level='DEBUG', stdout=True,
-                 file_log_level='DEBUG'):
+    def __init__(self, output_dir, stdout_log_level='DEBUG', stdout=True, file_log_level='DEBUG'):
         self.stdout_log_level = stdout_log_level
         self.stdout = stdout
         self.file_log_level = file_log_level
@@ -175,7 +188,7 @@ class SystemLogger(object):
         It is useful in constructing file and directory names.
 
         """
-        return '{dt}-{tz}'.format(dt=datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f'),
+        return u'{dt}-{tz}'.format(dt=datetime.now().strftime('%Y-%m-%d-%H-%M-%S.%f'),
             tz=time.tzname[time.localtime().tm_isdst])
 
     @global_lock(lock)
@@ -201,6 +214,7 @@ class SystemLogger(object):
         """
         
         #self.current_session_log_dir_name.value = ''
+        return
 
     # XXX: Returning the enclosing directory in case the session has been
     # closed may not be ideal. In some cases, it causes session logs to be
@@ -225,9 +239,9 @@ class SystemLogger(object):
         s += u'\n'
 
         ss = u'    ' + unicode(message)
-        ss = re.sub(r'\n', '\n    ', ss)
+        ss = re.sub(ur'\n', '\n    ', ss)
 
-        return s + ss + '\n'
+        return s + ss + u'\n'
 
     @global_lock(lock)
     def log(self, lvl, message, session_system_log=False):
@@ -237,10 +251,12 @@ class SystemLogger(object):
 
         """
 
+        msg = self.formatter(lvl, message)
+
         if self.stdout:
             # Log to stdout.
             if (SystemLogger.levels[lvl] >= SystemLogger.levels[self.stdout_log_level]):
-                print self.formatter(lvl, message)
+                print msg
                 sys.stdout.flush()
 
         if self.output_dir:
@@ -249,7 +265,7 @@ class SystemLogger(object):
                 log_fname = os.path.join(self.output_dir, 'system.log')
                 with codecs.open(log_fname, "a+", encoding='utf8', buffering=0) as log_file:
                     fcntl.lockf(log_file, fcntl.LOCK_EX)
-                    log_file.write(self.formatter(lvl, message))
+                    log_file.write(msg)
                     log_file.write('\n')
                     fcntl.lockf(log_file, fcntl.LOCK_UN)
 
@@ -259,35 +275,49 @@ class SystemLogger(object):
                 session_log_fname = os.path.join(self.current_session_log_dir_name.value, 'system.log')
                 with codecs.open(session_log_fname, "a+", encoding='utf8', buffering=0) as session_log_file:
                     fcntl.lockf(session_log_file, fcntl.LOCK_EX)
-                    session_log_file.write(self.formatter(lvl, message))
+                    session_log_file.write(msg)
                     session_log_file.write('\n')
                     fcntl.lockf(session_log_file, fcntl.LOCK_UN)
 
+    @async
+    @etime('syslog_info')
     @global_lock(lock)
     def info(self, message):
         self.log('INFO', message)
 
+    @async
+    @etime('syslog_debug')
     @global_lock(lock)
     def debug(self, message):
         self.log('DEBUG', message)
 
+    @async
+    @etime('syslog_warning')
     @global_lock(lock)
     def warning(self, message):
         self.log('WARNING', message)
 
+    @async
+    @etime('syslog_critical')
     @global_lock(lock)
     def critical(self, message):
         self.log('CRITICAL', message)
 
+    @async
+    @etime('syslog_exception')
     @global_lock(lock)
     def exception(self, message):
         tb = traceback.format_exc()
         self.log('EXCEPTION', unicode(message) + '\n' + unicode(tb, 'utf8'))
 
+    @async
+    @etime('syslog_error')
     @global_lock(lock)
     def error(self, message):
         self.log('ERROR', message)
 
+    @async
+    @etime('syslog_session_system_log')
     @global_lock(lock)
     def session_system_log(self, message):
         """This logs specifically only into the call-specific system log."""
