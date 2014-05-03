@@ -3,22 +3,26 @@
 
 from __future__ import unicode_literals
 
+import argparse
 import glob
 import os
-import xml.dom.minidom
 import random
-import autopath
 import sys
+import xml.dom.minidom
+
+# Add Alex on Pythonpath.
+if __name__ == "__main__":
+    import autopath
 
 import alex.utils.various as various
 
-from alex.corpustools.text_norm_cs import normalise_text, exclude_slu
-from alex.corpustools.wavaskey import save_wavaskey
+from alex.applications.PublicTransportInfoCS.hdc_slu import PTICSHDCSLU
+from alex.applications.PublicTransportInfoCS.preprocessing import PTICSSLUPreprocessing
 from alex.components.asr.common import asr_factory
 from alex.components.asr.utterance import Utterance, UtteranceNBList
 from alex.components.slu.base import CategoryLabelDatabase
-from alex.applications.PublicTransportInfoCS.preprocessing import PTICSSLUPreprocessing
-from alex.applications.PublicTransportInfoCS.hdc_slu import PTICSHDCSLU
+from alex.corpustools.text_norm_cs import normalise_text, exclude_slu
+from alex.corpustools.wavaskey import save_wavaskey
 from alex.utils.config import Config
 
 """ The script has two commands:
@@ -40,12 +44,29 @@ def normalise_semi_words(txt):
     return txt
 
 
+def parse_args(argv=None):
+    arger = argparse.ArgumentParser(
+        description="Transforms data from XML files with transcribed and "
+                    "annotated dialogues in a CUED-compliant format into "
+                    "the format needed for training Alex SLU models.")
+    arger.add_argument('-i', '--input-dir',
+                       default='indomain_data',
+                       help='Path towards the directory below which annotated '
+                            'XML files can be found.')
+
+    args = arger.parse_args(argv)
+
+    return args
+
+
 def main():
+    args = parse_args()
+
     cldb = CategoryLabelDatabase('../data/database.py')
     preprocessing = PTICSSLUPreprocessing(cldb)
     slu = PTICSHDCSLU(preprocessing)
     cfg = Config.load_configs(['../kaldi.cfg',], use_default=True)
-    asr_rec = asr_factory(cfg)                    
+    asr_rec = asr_factory(cfg)
 
     fn_uniq_trn = 'uniq.trn'
     fn_uniq_trn_hdc_sem = 'uniq.trn.hdc.sem'
@@ -83,7 +104,7 @@ def main():
     fn_test_nbl = 'test.nbl'
     fn_test_nbl_hdc_sem = 'test.nbl.hdc.sem'
 
-    indomain_data_dir = "indomain_data"
+    indomain_data_dir = args.input_dir
 
     print "Generating the SLU train and test data"
     print "-"*120
@@ -147,16 +168,16 @@ def main():
 
             wav_key = recs[0].getAttribute('fname')
             wav_path = os.path.join(f_dir, wav_key)
-            
+
             # FIXME: Check whether the last transcription is really the best! FJ
             t = various.get_text_from_xml_node(trans[-1])
             t = normalise_text(t)
 
-            
+
             if '--asr-log' not in sys.argv:
                 asr_rec_nbl = asr_rec.rec_wav_file(wav_path)
                 a = unicode(asr_rec_nbl.get_best())
-            else:  
+            else:
                 a = various.get_text_from_xml_node(hyps[0])
                 a = normalise_semi_words(a)
 
@@ -181,7 +202,7 @@ def main():
                 # HDC SLU on 1 best ASR
                 if '--asr-log' not in sys.argv:
                     a = unicode(asr_rec_nbl.get_best())
-                else:  
+                else:
                     a = various.get_text_from_xml_node(hyps[0])
                     a = normalise_semi_words(a)
 
@@ -194,7 +215,7 @@ def main():
                 n = UtteranceNBList()
                 if '--asr-log' not in sys.argv:
                    n = asr_rec_nbl
-                   
+
                    print 'ASR RECOGNITION NBLIST\n',unicode(n)
                 else:
                     for h in hyps:
