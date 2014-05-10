@@ -5,7 +5,12 @@ from __future__ import unicode_literals
 
 import autopath
 from alex.components.asr.exceptions import ASRException
-from alex.utils.audio import load_wav
+try:
+    from alex.utils.audio import load_wav
+except ImportError:
+    # This is a quick hack, properly, we should log a warning, at least.
+    import sys
+    print >>sys.stderr, "Could not import load_wav. Some ASR-related functionality might not work."
 from alex.components.hub.messages import Frame
 
 

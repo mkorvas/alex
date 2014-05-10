@@ -15,12 +15,14 @@ import fcntl
 import time
 import os
 import sys
+import random
 import re
 import codecs
 import traceback
 
 from datetime import datetime
 
+random.seed()
 
 def local_lock():
     """This decorator makes the decorated function thread safe.
@@ -28,7 +30,11 @@ def local_lock():
     For each function it creates a unique lock.
 
     """
-    lock = multiprocessing.Lock()
+
+    try:
+        lock = multiprocessing.Lock()
+    except OSError:
+        lock = threading.Lock()
 
     def decorator(user_function):
         @functools.wraps(user_function)
@@ -136,13 +142,28 @@ class InstanceID(object):
 
     """
 
-    lock = multiprocessing.Lock()
-    instance_id = multiprocessing.Value('i', 0)
+    try:
+        lock = multiprocessing.Lock()
+    except OSError:
+        lock = threading.Lock()
+
+    try:
+        instance_id = multiprocessing.Value('i', 0)
+    except OSError:
+        instance_id = None
 
     @global_lock(lock)
     def get_instance_id(self):
-        InstanceID.instance_id.value += 1
-        return InstanceID.instance_id.value
+        # When available,
+        if InstanceID.instance_id is not None:
+            # return a brand new ID.
+            InstanceID.instance_id.value += 1
+            return InstanceID.instance_id.value
+        else:
+            # Else, just return something very random.
+            return (os.getpid(),
+                    datetime.datetime.now().microsecond,
+                    random.randint(0, 65536))
 
 
 class SystemLogger(object):
@@ -150,7 +171,11 @@ class SystemLogger(object):
     This is a multiprocessing-safe logger.  It should be used by all components in Alex.
     """
 
-    lock = multiprocessing.RLock()
+    try:
+        lock = multiprocessing.RLock()
+    except OSError:
+        lock = threading.RLock()
+
     levels = {
         'SYSTEM-LOG':       0,
         'DEBUG':           10,

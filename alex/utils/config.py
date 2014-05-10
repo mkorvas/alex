@@ -105,7 +105,14 @@ def online_update(file_name):
     :return: a file name of the local copy of the file downloaded from the server
     """
     url = online_update_server + file_name
-    url_time = urllib.urlopen(url).info().getdate('Last-Modified')
+    try:
+        url_time = urllib.urlopen(url).info().getdate('Last-Modified')
+    except IOError as er:
+        if url.startswith('https'):
+            url = url.replace('https', 'http', 1)
+            url_time = urllib.urlopen(url).info().getdate('Last-Modified')
+        else:
+            raise er
 
     fn = as_project_path(file_name)
 
