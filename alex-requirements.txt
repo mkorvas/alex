@@ -10,6 +10,7 @@ python-Levenshtein
 boto
 jinja2
 suds
+pyaudio
 
 # pykaldi
 cython
