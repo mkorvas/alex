@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 import argparse
 import os
-from os.path import exists, join
+from os.path import dirname, exists, join, realpath
 
 if __name__ == "__main__":
     import autopath
@@ -15,12 +15,16 @@ from alex.components.asr.utterance import Utterance, UtteranceNBList
 from alex.components.slu.da import DialogueAct
 from alex.components.slu.base import CategoryLabelDatabase
 from alex.components.slu.dailrclassifier import DAILogRegClassifier
-from alex.corpustools.wavaskey import load_wavaskey
+from alex.corpustools.wavaskey import load_wavaskeys
 
 ###############################################################################
 #                                  Constants                                  #
 ###############################################################################
 
+_SCRIPT_DIR = dirname(realpath(__file__))
+CLDB_PATH = join(_SCRIPT_DIR, os.pardir, 'data', 'database.py')
+
+FEAT_SIZE = 4
 MIN_CLASSIFIER_COUNT = 4
 MIN_FEATURE_COUNT = 3
 
@@ -48,8 +52,9 @@ def increase_weight(d, weight):
 
 
 def train(fn_model,
-          fn_transcription, constructor, fn_annotation,
-          fn_bs_transcription, fn_bs_annotation,
+          fn_transcriptions, constructor, fn_annotations,
+          fn_bs_transcriptions,
+          fn_bs_annotations,
           min_feature_count=2,
           min_classifier_count=2,
           limit=100000):
@@ -57,26 +62,36 @@ def train(fn_model,
     Trains a SLU DAILogRegClassifier model.
 
     :param fn_model:
-    :param fn_transcription:
+    :param fn_transcriptions:
     :param constructor:
-    :param fn_annotation:
+    :param fn_annotations:
+    :param fn_bs_transcriptions: Like fn_transcriptions, but for bootstrapped
+    data.
+    :param fn_bs_annotations: Like fn_annotations, but for bootstrapped data.
     :param limit:
     :return:
+
     """
-    bs_utterances = load_wavaskey(fn_bs_transcription, Utterance, limit=limit)
+
+    # Load the bootstrap utts.
+    bs_utterances = load_wavaskeys(fn_bs_transcriptions, Utterance,
+                                   limit=limit)
     increase_weight(bs_utterances, min_feature_count + 10)
-    bs_das = load_wavaskey(fn_bs_annotation, DialogueAct, limit=limit)
+    # Load the bootstrap DAs.
+    bs_das = load_wavaskeys(fn_bs_annotations, DialogueAct, limit=limit)
     increase_weight(bs_das, min_feature_count + 10)
 
-    utterances = load_wavaskey(fn_transcription, constructor, limit=limit)
-    das = load_wavaskey(fn_annotation, DialogueAct, limit=limit)
+    # Load usage utts.
+    utterances = load_wavaskeys(fn_transcriptions, constructor, limit=limit)
+    # Load usage DAs.
+    das = load_wavaskeys(fn_annotations, DialogueAct, limit=limit)
 
     utterances.update(bs_utterances)
     das.update(bs_das)
 
-    cldb = CategoryLabelDatabase('../data/database.py')
+    cldb = CategoryLabelDatabase(CLDB_PATH)
     preprocessing = PTICSSLUPreprocessing(cldb)
-    slu = DAILogRegClassifier(cldb, preprocessing, features_size=4)
+    slu = DAILogRegClassifier(cldb, preprocessing, features_size=FEAT_SIZE)
 
     slu.extract_classifiers(das, utterances, verbose=True)
     slu.prune_classifiers(min_classifier_count=min_classifier_count)
@@ -88,16 +103,23 @@ def train(fn_model,
 
     slu.save_model(fn_model)
 
+###############################################################################
+#                           Command-line interface                            #
+###############################################################################
+
 
 def parse_args(argv=None):
     arger = argparse.ArgumentParser(
         description="Trains a MaxEnt SLU classifier for given training data.")
-    arger.add_argument('-i', '--input-dir',
+    arger.add_argument('-i', '--input-dirs',
                        metavar='DIR',
-                       help='Path towards a directory with all needed '
+                       nargs='+',
+                       default=[_SCRIPT_DIR],
+                       help='Paths towards directories with all needed '
                             'training files.')
     arger.add_argument('-o', '--output-dir',
                        metavar='DIR',
+                       default=_SCRIPT_DIR,
                        help='Path towards a directory where trained models '
                             'shall be written. If the directory does not '
                             'exist, it will be created.')
@@ -109,7 +131,7 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
 
-    indir = args.input_dir
+    indirs = args.input_dirs
     outdir = args.output_dir
     exists(outdir) or os.makedirs(outdir)
 
@@ -125,11 +147,9 @@ def main(argv=None):
             sem_fname = '{parts}.{utthyp_type}.hdc.sem'.format(**locals())
 
             train(join(outdir, model_fname),
-                  join(indir, trs_fname),
+                  [join(indir, trs_fname) for indir in indirs],
                   utthyp_constructor,
-                  join(indir, sem_fname),
-                  join(indir, 'bootstrap.trn'),
-                  join(indir, 'bootstrap.sem'),
+                  [join(indir, sem_fname) for indir in indirs],
                   min_feature_count=MIN_FEATURE_COUNT,
                   min_classifier_count=MIN_CLASSIFIER_COUNT)
 
