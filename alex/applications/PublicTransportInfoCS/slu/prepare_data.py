@@ -59,6 +59,7 @@ DEV_TRIP_REL   = 0.9  # trip for the dev partition, relative
 CLDB_PATH = join(_SCRIPT_DIR, os.pardir, 'data', 'database.py')
 KALDI_CFG_PATH = join(_SCRIPT_DIR, os.pardir, 'kaldi.cfg')
 
+INDOMAIN_DATA        = join(_SCRIPT_DIR, 'indomain_data')
 TRANSCRIBED_FNAME    = 'asr_transcribed.xml'
 
 FN_UNIQ_TRN          = 'uniq.trn'
@@ -318,21 +319,28 @@ def parse_args(argv=None):
     arger = argparse.ArgumentParser(
         description="Transforms data from XML files with transcribed and "
                     "annotated dialogues in a CUED-compliant format into "
-                    "the format needed for training Alex SLU models.")
+                    "the format needed for training Alex SLU models.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     arger.add_argument('-i', '--input-dir',
-                       default='indomain_data',
+                       default=INDOMAIN_DATA,
                        help='Path towards the directory below which annotated '
                             'XML files can be found.')
     arger.add_argument('-o', '--output-dir',
                        default=_SCRIPT_DIR,
                        help='Path towards the directory into which output '
-                            'files shall be written.')
+                            'files shall be written. If it does not exist, '
+                            'it will be created.')
     arger.add_argument('--asr-log',
-                       action='store_true')
+                       action='store_true',
+                       help='Use ASR hyps from logs rather than decoding them '
+                            'using a current ASR system.')
     arger.add_argument('--fast',
-                       action='store_true')
+                       action='store_true',
+                       help='Do not build SLU hyps from whole n-best lists, '
+                            'only from their first best ASR hypothesis.')
     arger.add_argument('--uniq',
-                       action='store_true')
+                       action='store_true',
+                       help='Do not produce data based on ASR hypotheses.')
 
     args = arger.parse_args(argv)
 

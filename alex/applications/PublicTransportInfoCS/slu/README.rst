@@ -7,9 +7,11 @@ Available data
 At this moment, we only have data which were automatically generated using our handcrafted SLU (HDC SLU) parser on the
 transcribed audio. In general, the quality of the automatic annotation is very good.
 
-The data can be prepared using the ``prapare_data.py`` script. It assumes that there exist the ``indomain_data`` directory
-with links to directories containing ``asr_transcribed.xml`` files. Then it uses these files to extract transcriptions
-and generate automatic SLU annotations using the PTICSHDCSLU parser from the ``hdc_slu.py`` file.
+The data can be prepared using the ``prepare_data.py`` script. It collects 
+files (called ``asr_transcribed.xml`` by default) with session logs from 
+a directory (``indomain_data`` by default) and uses them to extract 
+transcriptions and generate automatic SLU annotations using the PTICSHDCSLU 
+parser from the ``hdc_slu.py`` file.
 
 The script generates the following files:
 
@@ -20,11 +22,21 @@ The script generates the following files:
 - ``*.nbl``: contains ASR N-best results
 - ``*.nbl.hdc.sem``: contains automatic annotation from n-best ASR using handcrafted SLU
 
-The script accepts ``--uniq`` parameter for fast generation of unique HDC SLU annotations.
+The script accepts ``--uniq`` parameter for fast generation of unique HDC 
+SLU annotations. In fact, the result is not exactly what the name suggests
+ -- files with uniqued utterances are generated anyway, but passing this 
+flag results in *not* generating training observations from ASR outputs.
 This is useful when tuning the HDC SLU.
 
 The script also accepts ``--fast`` parameter for fast approximate preparation of all data.
 It approximates the HDC SLU output from an N-best list using output obtained by parsing the 1-best ASR result.
+
+The script also accepts the ``--asr-log`` flag, which causes it to use 
+logged ASR hyps, as opposed to running a current version of the ASR decoder 
+to obtain them.
+
+You can get a description of the script's arguments by calling 
+``./prepare_data.py --help``.
 
 Building the models
 -------------------
@@ -100,7 +112,8 @@ Using the ``./print_scores.sh`` one can get scores for assessing the quality of 
 experiments are stored in the ``old.scores.*`` files. Please look at the results marked as ``DATA ALL ASR - *``.
 
 If the automatic annotations were correct, we could conclude that the F-measure of the HDC SLU parser on 1-best
-is higher wne compared to F-measure on N-best%. This is confusing as it looks like that the decoding from n-best lists
+is higher when compared to F-measure on N-best%. This is confusing as it 
+looks like that the decoding from n-best lists
 gives worse results when compared to decoding from 1-best ASR hypothesis.
 
 Evaluation of TRN model on test data
