@@ -3,11 +3,32 @@
 
 from __future__ import unicode_literals
 
-import os.path
+import argparse
 import codecs
-import autopath
+import os
+from os.path import basename, dirname, join, realpath
 
-from alex.components.asr.utterance import Utterance, UtteranceNBList, UtteranceConfusionNetwork
+if __name__ == "__main__":
+    import autopath
+
+# XXX This function should really be defined somewhere else than prepare_data.
+from alex.applications.PublicTransportInfoCS.prepare_data import sort_dais
+from alex.applications.PublicTransportInfoCS.train import (
+    constructor_for_utthyp,
+    get_model_fname)
+from alex.components.asr.utterance import Utterance, UtteranceNBList
+
+###############################################################################
+#                                  Constants                                  #
+###############################################################################
+
+_SCRIPT_DIR = dirname(realpath(__file__))
+CLDB_PATH = join(_SCRIPT_DIR, os.pardir, 'data', 'database.py')
+PARTS = ('train', 'dev', 'test')
+
+###############################################################################
+#                                  Functions                                  #
+###############################################################################
 
 
 def trained_slu_test(fn_model, fn_input, constructor, fn_reference):
@@ -20,9 +41,9 @@ def trained_slu_test(fn_model, fn_input, constructor, fn_reference):
     :param fn_reference:
     :return:
     """
-    print "="*120
+    print "=" * 120
     print "Testing: ", fn_model, fn_input, fn_reference
-    print "-"*120
+    print "-" * 120
 
     from alex.applications.PublicTransportInfoCS.preprocessing import PTICSSLUPreprocessing
     from alex.components.slu.base import CategoryLabelDatabase
@@ -30,7 +51,7 @@ def trained_slu_test(fn_model, fn_input, constructor, fn_reference):
     from alex.corpustools.wavaskey import load_wavaskey, save_wavaskey
     from alex.corpustools.semscore import score
 
-    cldb = CategoryLabelDatabase('../data/database.py')
+    cldb = CategoryLabelDatabase(CLDB_PATH)
     preprocessing = PTICSSLUPreprocessing(cldb)
     slu = DAILogRegClassifier(cldb, preprocessing)
 
@@ -72,19 +93,20 @@ def trained_slu_test(fn_model, fn_input, constructor, fn_reference):
             slu.parse(obs, verbose=True)
 
     if 'trn' in fn_model:
-        fn_sem = os.path.basename(fn_input)+'.model.trn.sem.out'
+        fn_sem = basename(fn_input) + '.model.trn.sem.out'
     elif 'asr' in fn_model:
-        fn_sem = os.path.basename(fn_input)+'.model.asr.sem.out'
+        fn_sem = basename(fn_input) + '.model.asr.sem.out'
     elif 'nbl' in fn_model:
-        fn_sem = os.path.basename(fn_input)+'.model.nbl.sem.out'
+        fn_sem = basename(fn_input) + '.model.nbl.sem.out'
     else:
-        fn_sem = os.path.basename(fn_input)+'.XXX.sem.out'
+        fn_sem = basename(fn_input) + '.XXX.sem.out'
 
-    save_wavaskey(fn_sem, parsed_das, trans = lambda da: '&'.join(sorted(unicode(da).split('&'))))
+    save_wavaskey(fn_sem, parsed_das, trans=sort_dais)
 
-    f = codecs.open(os.path.basename(fn_sem)+'.score', 'w+', encoding='UTF-8')
+    f = codecs.open(basename(fn_sem) + '.score', 'w+', encoding='UTF-8')
     score(fn_reference, fn_sem, True, True, f)
     f.close()
+
 
 def hdc_slu_test(fn_input, constructor, fn_reference):
     """
@@ -96,9 +118,9 @@ def hdc_slu_test(fn_input, constructor, fn_reference):
     :param fn_reference:
     :return:
     """
-    print "="*120
+    print "=" * 120
     print "Testing HDC SLU: ", fn_input, fn_reference
-    print "-"*120
+    print "-" * 120
 
     from alex.components.slu.base import CategoryLabelDatabase
     from alex.applications.PublicTransportInfoCS.preprocessing import PTICSSLUPreprocessing
@@ -106,7 +128,7 @@ def hdc_slu_test(fn_input, constructor, fn_reference):
     from alex.corpustools.wavaskey import load_wavaskey, save_wavaskey
     from alex.corpustools.semscore import score
 
-    cldb = CategoryLabelDatabase('../data/database.py')
+    cldb = CategoryLabelDatabase(CLDB_PATH)
     preprocessing = PTICSSLUPreprocessing(cldb)
     hdc_slu = PTICSHDCSLU(preprocessing)
 
@@ -145,48 +167,87 @@ def hdc_slu_test(fn_input, constructor, fn_reference):
             print dah.da
             hdc_slu.parse(obs, verbose=True)
 
-    fn_sem = os.path.basename(fn_input)+'.hdc.slu.sem.out'
+    fn_sem = basename(fn_input) + '.hdc.slu.sem.out'
 
-    save_wavaskey(fn_sem, parsed_das, trans = lambda da: '&'.join(sorted(unicode(da).split('&'))))
+    save_wavaskey(fn_sem, parsed_das, trans=sort_dais)
 
-    f = codecs.open(os.path.basename(fn_sem)+'.score', 'w+', encoding='UTF-8')
+    f = codecs.open(basename(fn_sem) + '.score', 'w+', encoding='UTF-8')
     score(fn_reference, fn_sem, True, True, f)
     f.close()
 
-if __name__ == "__main__":
-    # cheating experiment on all data using models trained on all data
-    hdc_slu_test('./all.trn', Utterance, './all.trn.hdc.sem')
-    hdc_slu_test('./all.asr', Utterance, './all.trn.hdc.sem')
-    hdc_slu_test('./all.nbl', Utterance, './all.trn.hdc.sem')
-    trained_slu_test('./dailogreg.trn.model.all', './all.trn', Utterance, './all.trn.hdc.sem')
-    trained_slu_test('./dailogreg.asr.model.all', './all.asr', Utterance, './all.trn.hdc.sem')
-    trained_slu_test('./dailogreg.nbl.model.all', './all.nbl', UtteranceNBList, './all.trn.hdc.sem')
 
-    # regular experiment evaluating models trained on training data and evaluated on deb and test data
+def parse_args(argv=None):
+    arger = argparse.ArgumentParser(
+        description="Trains a MaxEnt SLU classifier for given training data.")
+    arger.add_argument('-M', '--models-dir',
+                       metavar='DIR',
+                       default=_SCRIPT_DIR,
+                       help='Path towards a directory with trained SLU models.'
+                       )
+    arger.add_argument('-i', '--input-dirs',
+                       metavar='DIR',
+                       nargs='+',
+                       default=[_SCRIPT_DIR],
+                       help='Paths towards directories with prepared SLU '
+                            'utts/SLU-hyps files.')
+    arger.add_argument('-o', '--output-dir',
+                       metavar='DIR',
+                       default=_SCRIPT_DIR,
+                       help='Path towards a directory where trained models '
+                            'shall be written. If the directory does not '
+                            'exist, it will be created.')
+
+    args = arger.parse_args(argv)
+    return args
+
+
+def eval_all_on_all(models_dir, data_dir):
+    all_refs_fpath = join(data_dir, 'all.trn.hdc.sem')
+    for utthyp_type in ('trn', 'asr', 'nbl'):
+        all_utts_fpath = join(data_dir, 'all.{typ}'.format(typ=utthyp_type))
+        utthyp_constructor = constructor_for_utthyp(utthyp_type)
+
+        hdc_slu_test(all_utts_fpath, utthyp_constructor, all_refs_fpath)
+
+        model_fname = get_model_fname('all', utthyp_type)
+        model_fpath = join(models_dir, model_fname)
+        trained_slu_test(model_fpath,
+                         all_utts_fpath,
+                         utthyp_constructor,
+                         all_refs_fpath)
+
+
+def eval_crossparts(models_dir, data_dir):
+    for part in PARTS:
+        refs_fname = '{part}.trn.hdc.sem'.format(part=part)
+        refs_fpath = join(data_dir, refs_fname)
+
+        for utthyp_type in ('trn', 'asr', 'nbl'):
+            model_fname = get_model_fname(part, utthyp_type)
+            model_fpath = join(models_dir, model_fname)
+
+            utts_fname = '{part}.{utthyp_type}'.format(**locals())
+            utts_fpath = join(data_dir, utts_fname)
+
+            utthyp_constructor = constructor_for_utthyp(utthyp_type)
+
+            trained_slu_test(model_fpath, utts_fpath, utthyp_constructor,
+                             refs_fpath)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+
+    # CHEATING: experiment on all data using models trained on all data
+    for data_dir in args.input_dirs:
+        eval_all_on_all(args.models_dir, data_dir)
+
+    # REGULAR EXPERIMENT: evaluating models trained on training data and evaluated on deb and test data
     # **WARNING** due to data sparsity the metrics on the dev and test data fluctuate a lot
     # therefore meaning full results can be only obtained using N-fold cross validation
-
-    trained_slu_test('./dailogreg.trn.model', './dev.trn', Utterance, './dev.trn.hdc.sem')
-    trained_slu_test('./dailogreg.trn.model', './dev.asr', Utterance, './dev.trn.hdc.sem')
-    trained_slu_test('./dailogreg.trn.model', './dev.nbl', UtteranceNBList, './dev.trn.hdc.sem')
-
-    trained_slu_test('./dailogreg.trn.model', './test.trn', Utterance, './test.trn.hdc.sem')
-    trained_slu_test('./dailogreg.trn.model', './test.asr', Utterance, './test.trn.hdc.sem')
-    trained_slu_test('./dailogreg.trn.model', './test.nbl', UtteranceNBList, './test.trn.hdc.sem')
+    for data_dir in args.input_dirs:
+        eval_crossparts(args.models_dir, data_dir)
 
 
-    trained_slu_test('./dailogreg.asr.model', './dev.trn', Utterance, './dev.trn.hdc.sem')
-    trained_slu_test('./dailogreg.asr.model', './dev.asr', Utterance, './dev.trn.hdc.sem')
-    trained_slu_test('./dailogreg.asr.model', './dev.nbl', UtteranceNBList, './dev.trn.hdc.sem')
-
-    trained_slu_test('./dailogreg.asr.model', './test.trn', Utterance, './test.trn.hdc.sem')
-    trained_slu_test('./dailogreg.asr.model', './test.asr', Utterance, './test.trn.hdc.sem')
-    trained_slu_test('./dailogreg.asr.model', './test.nbl', UtteranceNBList, './test.trn.hdc.sem')
-
-    trained_slu_test('./dailogreg.nbl.model', './dev.trn', Utterance, './dev.trn.hdc.sem')
-    trained_slu_test('./dailogreg.nbl.model', './dev.asr', Utterance, './dev.trn.hdc.sem')
-    trained_slu_test('./dailogreg.nbl.model', './dev.nbl', UtteranceNBList, './dev.trn.hdc.sem')
-
-    trained_slu_test('./dailogreg.nbl.model', './test.trn', Utterance, './test.trn.hdc.sem')
-    trained_slu_test('./dailogreg.nbl.model', './test.asr', Utterance, './test.trn.hdc.sem')
-    trained_slu_test('./dailogreg.nbl.model', './test.nbl', UtteranceNBList, './test.trn.hdc.sem')
+if __name__ == "__main__":
+    main()

@@ -42,6 +42,14 @@ def get_model_fname(parts, utthyp_type):
     return model_fname
 
 
+def constructor_for_utthyp(utthyp_type):
+    if utthyp_type == 'nbl':
+        return UtteranceNBList
+    else:
+        # What else?
+        return Utterance
+
+
 def increase_weight(d, weight):
     new_d = {}
     for i in range(weight):
@@ -137,18 +145,13 @@ def main(argv=None):
 
     for parts in ('all', 'train'):
         for utthyp_type in ('trn', 'asr', 'nbl'):
-            if utthyp_type in ('trn', 'asr'):
-                utthyp_constructor = Utterance
-            else:
-                utthyp_constructor = UtteranceNBList
-
             model_fname = get_model_fname(parts, utthyp_type)
             trs_fname = '{parts}.{utthyp_type}'.format(**locals())
             sem_fname = '{parts}.{utthyp_type}.hdc.sem'.format(**locals())
 
             train(join(outdir, model_fname),
                   [join(indir, trs_fname) for indir in indirs],
-                  utthyp_constructor,
+                  constructor_for_utthyp(utthyp_type),
                   [join(indir, sem_fname) for indir in indirs],
                   min_feature_count=MIN_FEATURE_COUNT,
                   min_classifier_count=MIN_CLASSIFIER_COUNT)
