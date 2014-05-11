@@ -17,7 +17,7 @@ from alex.components.asr.utterance import Utterance, UtteranceNBList
 from alex.components.slu.da import DialogueAct
 from alex.components.slu.base import CategoryLabelDatabase
 from alex.components.slu.dailrclassifier import DAILogRegClassifier
-from alex.corpustools.wavaskey import load_wavaskeys
+from alex.corpustools.wavaskey import load_wavaskey, load_wavaskeys
 
 ###############################################################################
 #                                  Constants                                  #
@@ -76,19 +76,20 @@ def train(fn_model,
     :param constructor:
     :param fn_annotations:
     :param fn_bs_transcriptions: Like fn_transcriptions, but for bootstrapped
-    data.
-    :param fn_bs_annotations: Like fn_annotations, but for bootstrapped data.
+        data, and only one file, not a list.
+    :param fn_bs_annotations: Like fn_annotations, but for bootstrapped data,
+        and only one file, not a list.
     :param limit:
     :return:
 
     """
 
     # Load the bootstrap utts.
-    bs_utterances = load_wavaskeys(fn_bs_transcriptions, Utterance,
-                                   limit=limit)
+    bs_utterances = load_wavaskey(fn_bs_transcriptions, Utterance,
+                                  limit=limit)
     increase_weight(bs_utterances, min_feature_count + 10)
     # Load the bootstrap DAs.
-    bs_das = load_wavaskeys(fn_bs_annotations, DialogueAct, limit=limit)
+    bs_das = load_wavaskey(fn_bs_annotations, DialogueAct, limit=limit)
     increase_weight(bs_das, min_feature_count + 10)
 
     # Load usage utts.
@@ -125,8 +126,11 @@ def parse_args(argv=None):
                        metavar='DIR',
                        nargs='+',
                        default=[_SCRIPT_DIR],
-                       help='Paths towards directories with all needed '
-                            'training files.')
+                       help='Paths towards directories with training files.')
+    arger.add_argument('-b', '--bootstrap-dir',
+                       metavar='DIR',
+                       default=_SCRIPT_DIR,
+                       help='Path towards a directory with bootstrap data.')
     arger.add_argument('-o', '--output-dir',
                        metavar='DIR',
                        default=_SCRIPT_DIR,
@@ -155,6 +159,8 @@ def main(argv=None):
                   [join(indir, trs_fname) for indir in indirs],
                   constructor_for_utthyp(utthyp_type),
                   [join(indir, sem_fname) for indir in indirs],
+                  join(args.bootstrap_dir, 'bootstrap.trn'),
+                  join(args.bootstrap_dir, 'bootstrap.sem'),
                   min_feature_count=MIN_FEATURE_COUNT,
                   min_classifier_count=MIN_CLASSIFIER_COUNT)
 
