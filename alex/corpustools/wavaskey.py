@@ -58,6 +58,32 @@ def load_wavaskey(fname, constructor, limit=None, encoding='UTF-8'):
     return ret_dict
 
 
+def load_wavaskeys(fpaths, constructor, limit=None, encoding='UTF-8'):
+    """Loads objects from multiple wav-as-key files, honoring the total limit.
+    """
+
+    objs = dict()
+
+    for fpath in fpaths:
+        new_objs = load_wavaskey(fpath, constructor, limit, encoding)
+
+        # Handle the limit.
+        if len(new_objs) + len(objs) > limit:
+            only_new_keys = set(new_objs) - set(objs)
+            max_new = limit - len(objs)
+            if len(only_new_keys) > max_new:
+                for key in islice(only_new_keys, 0, max_new):
+                    objs[key] = new_objs[key]
+                return objs
+            elif len(only_new_keys) == max_new:
+                objs.update(new_objs)
+                return objs
+
+        objs.update(new_objs)
+
+    return objs
+
+
 def save_wavaskey(fname, in_dict, encoding='UTF-8', trans=None):
     """
     Saves a dictionary of objects in the wave as key format into a file.
