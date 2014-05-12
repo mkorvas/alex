@@ -12,7 +12,7 @@ if __name__ == "__main__":
     import autopath
 
 # XXX This function should really be defined somewhere else than prepare_data.
-from alex.applications.PublicTransportInfoCS.prepare_data import sort_dais
+from alex.applications.PublicTransportInfoCS.slu.prepare_data import sort_dais
 from alex.applications.PublicTransportInfoCS.preprocessing import PTICSSLUPreprocessing
 from alex.applications.PublicTransportInfoCS.train import (
     constructor_for_utthyp,
