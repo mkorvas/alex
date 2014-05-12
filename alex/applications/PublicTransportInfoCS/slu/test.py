@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import argparse
 import codecs
 import os
-from os.path import basename, dirname, join, realpath
+from os.path import basename, dirname, exists, join, realpath
 
 if __name__ == "__main__":
     import autopath
@@ -257,6 +257,8 @@ def parse_args(argv=None):
 
 def main(argv=None):
     args = parse_args(argv)
+
+    exists(outdir) or os.makedirs(outdir)
 
     # CHEATING: experiment on all data using models trained on all data
     for data_dir in args.input_dirs:
