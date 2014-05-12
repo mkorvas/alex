@@ -7,6 +7,7 @@ import argparse
 import codecs
 import os
 from os.path import basename, dirname, exists, join, realpath
+import sys
 
 if __name__ == "__main__":
     import autopath
@@ -272,7 +273,15 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    main()
+    # Make sure we can read and write UTF-8.
+    if not sys.stdin.isatty():
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+    if not sys.stdout.isatty():
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+    if not sys.stderr.isatty():
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
+
+    sys.exit(main(sys.argv[1:]))
 
 
 # pymode:lint_ignore=E501,E221:
