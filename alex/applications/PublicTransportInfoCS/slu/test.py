@@ -258,7 +258,7 @@ def parse_args(argv=None):
 def main(argv=None):
     args = parse_args(argv)
 
-    exists(outdir) or os.makedirs(outdir)
+    exists(args.output_dir) or os.makedirs(args.output_dir)
 
     # CHEATING: experiment on all data using models trained on all data
     for data_dir in args.input_dirs:
